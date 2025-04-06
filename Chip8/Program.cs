@@ -55,26 +55,11 @@ public struct Registers()
 {
     // Data Registers range from V0 to VF
     // 16 in total
-    public byte v0 = 0;
-    public byte v1 = 0;
-    public byte v2 = 0;
-    public byte v3 = 0;
-    public byte v4 = 0;
-    public byte v5 = 0;
-    public byte v6 = 0;
-    public byte v7 = 0;
-    public byte v8 = 0;
-    public byte v9 = 0;
-    public byte vA = 0;
-    public byte vB = 0;
-    public byte vC = 0;
-    public byte vD = 0;
-    public byte vE = 0;
-    public byte vF = 0;
+    public byte[] v = new byte[16]; // V0 to VF
 
     // Address register
     // Can only be loaded with a 12 bit memory address
-    public UInt16 iReg = 0x000;
+    public UInt16 i = 0x000;
 }
 
 public class Chip8
@@ -224,18 +209,29 @@ public class Chip8
 
             case 0x1:
                 // Jump to NNN
+                Execute1NNN((UInt16)(opcode & 0xFFF));
                 break;
             case 0x2:
                 // Execute subroutine at NNN
+                Execute2NNN((UInt16)(opcode & 0xFFF));
                 break;
             case 0x3:
                 // Skip following instruction if VX == NN
+                Execute3XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
             case 0x4:
                 // Skip following instruction if VX != NN
+                Execute4XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
             case 0x5:
-                // Skip following instruction if VX == VY
+                switch (opcode & 0xF)
+                {
+                    // 5XY0
+                    case 0x0:
+                        // Skip following instruction if VX == VY
+                        Execute5XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                }
                 break;
             case 0x6:
                 // Store NN in VX
@@ -272,7 +268,8 @@ public class Chip8
 
     public void Execute0NNN(UInt16 address)
     {
-        if (debug) Console.WriteLine($"CHIP8: Executing 0NNN, Running Opcode at 0x0{address.ToString("X3")}.");
+        // Execute instruction at NNN
+        if (debug) Console.WriteLine($"CHIP8: Executing 0NNN, Running opcode at 0x0{address.ToString("X3")}.");
 
         // Make sure address is within bounds
         address = (UInt16)(address & 0xFFF);
@@ -286,7 +283,7 @@ public class Chip8
 
     public void Execute00E0()
     {
-        if (debug) Console.WriteLine("CHIP8: Executing 00E0, Clearing Screen.");
+        if (debug) Console.WriteLine("CHIP8: Executing 00E0, Clearing screen.");
 
         // Clear the screen
         for (int i = 0; i < display.GetLength(0); i++)
@@ -301,7 +298,95 @@ public class Chip8
     public void Execute00EE()
     {
         // Return from a subroutine
-        Console.WriteLine("OPCODE NOT IMPLEMENTED");
+        if (debug) Console.WriteLine("CHIP8: Executing 00EE, Returning from subroutine.");
+
+        // Make sure stack is not empty
+        if (stack.Count == 0)
+        {
+            Console.WriteLine("Error: Stack is empty, cannot return from subroutine.");
+            Environment.Exit(1);
+        }
+
+        // Pop the top address from the stack
+        UInt16 address = stack.Pop();
+
+        // Make sure address is within bounds
+        address = (UInt16)(address & 0xFFF);
+
+        // Set program counter to address
+        pc = address;
+    }
+
+    public void Execute1NNN(UInt16 address)
+    {
+        // Jump to NNN
+        if (debug) Console.WriteLine($"CHIP8: Executing 1NNN, Jumping to 0x0{address.ToString("X3")}.");
+
+        // Make sure address is within bounds
+        address = (UInt16)(address & 0xFFF);
+
+        // Set program counter to address
+        pc = address;
+    }
+
+    public void Execute2NNN(UInt16 address)
+    {
+        // Execute subroutine at NNN
+        if (debug) Console.WriteLine($"CHIP8: Executing 2NNN, Executing subroutine at 0x0{address.ToString("X3")}.");
+
+        // Make sure address is within bounds
+        address = (UInt16)(address & 0xFFF);
+
+        // Push the current program counter to the stack
+        stack.Push(pc);
+
+        // Set program counter to address
+        pc = address;
+    }
+
+    public void Execute3XNN(byte x, byte nn)
+    {
+        // Skip next instruction if VX == NN
+        if (debug) Console.WriteLine($"CHIP8: Executing 3XNN, Skipping next instruction if V{x.ToString("X1")} == {nn.ToString("X2")}.");
+
+        // Make sure x is within bounds
+        x = (byte)(x & 0xF);
+
+        if (registers.v[x] == nn)
+        {
+            // Skip next instruction
+            pc += 0x2;
+        }
+    }
+
+    public void Execute4XNN(byte x, byte nn)
+    {
+        // Skip next instruction if VX != NN
+        if (debug) Console.WriteLine($"CHIP8: Executing 4XNN, Skipping next instruction if V{x.ToString("X1")} != {nn.ToString("X2")}.");
+
+        // Make sure x is within bounds
+        x = (byte)(x & 0xF);
+
+        if (registers.v[x] != nn)
+        {
+            // Skip next instruction
+            pc += 0x2;
+        }
+    }
+
+    public void Execute5XY0(byte x, byte y)
+    {
+        // Skip next instruction if VX == VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 5XY0, Skipping next instruction if V{x.ToString("X1")} == V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        x = (byte)(x & 0xF);
+        y = (byte)(y & 0xF);
+        if (registers.v[x] == registers.v[y])
+        {
+            // Skip next instruction
+            pc += 0x2;
+        }
     }
 
     public Chip8(string fileName)
