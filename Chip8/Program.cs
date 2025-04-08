@@ -211,18 +211,22 @@ public class Chip8
                 // Jump to NNN
                 Execute1NNN((UInt16)(opcode & 0xFFF));
                 break;
+
             case 0x2:
                 // Execute subroutine at NNN
                 Execute2NNN((UInt16)(opcode & 0xFFF));
                 break;
+
             case 0x3:
                 // Skip following instruction if VX == NN
                 Execute3XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
+
             case 0x4:
                 // Skip following instruction if VX != NN
                 Execute4XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
+
             case 0x5:
                 switch (opcode & 0xF)
                 {
@@ -231,17 +235,77 @@ public class Chip8
                         // Skip following instruction if VX == VY
                         Execute5XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
                         break;
+                    default:
+                        // Invalid opcode
+                        Errors.ErrorInvalidOpcode(opcode);
+                        break;
                 }
                 break;
+
             case 0x6:
                 // Store NN in VX
+                Execute6XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
+
             case 0x7:
                 // Add NN to VX
+                Execute7XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
+
             case 0x8:
-                Console.WriteLine("8");
+                switch (opcode & 0xF)
+                {
+                    case 0x0:
+                        // Set VX to VY
+                        Execute8XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x1:
+                        // Set VX to bitwise OR of VX and VY
+                        // Quirk Reset VF
+                        Execute8XY1((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x2:
+                        // Set VX to bitwise AND of VX and VY
+                        // Quirk Reset VF
+                        Execute8XY2((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x3:
+                        // Set VX to bitwise XOR of VX and VY
+                        // Quirk Reset VF
+                        Execute8XY3((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x4:
+                        // Add VY to VX
+                        // Set VF to 1 if there is a carry else 0
+                        Execute8XY4((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x5:
+                        // Subtract VY from VX
+                        // Set VF to 0 if there is a borrow else 1
+                        Execute8XY5((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x6:
+                        // Set VX to VY and shift VX one bit to the right. Set VF to the value of the least significant bit of VX before the shift.
+                        // Quirk Don't set VX to VY only shift VX
+                        Execute8XY6((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0x7:
+                        // Set VX to the result of subtracting VX from VY. VF is set to 0 if there is a borrow, and 1 if there is not.
+                        // Set VF to 0 if there is a borrow else 1
+                        Execute8XY7((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    case 0xE:
+                        // Set VX to VY and shift VX one bit to the left. Set VF to the value of the most significant bit of VX before the shift.
+                        // Quirk Don't set VX to VY only shift VX
+                        Execute8XYE((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    default:
+                        // Invalid opcode
+                        Errors.ErrorInvalidOpcode(opcode);
+                        break;
+                }
                 break;
+
             case 0x9:
                 Console.WriteLine("9");
                 break;
@@ -272,7 +336,8 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 0NNN, Running opcode at 0x0{address.ToString("X3")}.");
 
         // Make sure address is within bounds
-        address = (UInt16)(address & 0xFFF);
+        if (address >= memory.Length)
+            Errors.ErrorOutOfBounds(address);
 
         // Get opcode from memory
         UInt16 opcode = FetchOpcode(address);
@@ -302,16 +367,14 @@ public class Chip8
 
         // Make sure stack is not empty
         if (stack.Count == 0)
-        {
-            Console.WriteLine("Error: Stack is empty, cannot return from subroutine.");
-            Environment.Exit(1);
-        }
+            Errors.ErrorEmptyStack();
 
         // Pop the top address from the stack
         UInt16 address = stack.Pop();
 
         // Make sure address is within bounds
-        address = (UInt16)(address & 0xFFF);
+        if (address >= memory.Length)
+            Errors.ErrorOutOfBounds(address);
 
         // Set program counter to address
         pc = address;
@@ -323,7 +386,8 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 1NNN, Jumping to 0x0{address.ToString("X3")}.");
 
         // Make sure address is within bounds
-        address = (UInt16)(address & 0xFFF);
+        if (address >= memory.Length)
+            Errors.ErrorOutOfBounds(address);
 
         // Set program counter to address
         pc = address;
@@ -335,7 +399,8 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 2NNN, Executing subroutine at 0x0{address.ToString("X3")}.");
 
         // Make sure address is within bounds
-        address = (UInt16)(address & 0xFFF);
+        if (address >= memory.Length)
+            Errors.ErrorOutOfBounds(address);
 
         // Push the current program counter to the stack
         stack.Push(pc);
@@ -350,7 +415,8 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 3XNN, Skipping next instruction if V{x.ToString("X1")} == {nn.ToString("X2")}.");
 
         // Make sure x is within bounds
-        x = (byte)(x & 0xF);
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
 
         if (registers.v[x] == nn)
         {
@@ -365,7 +431,8 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 4XNN, Skipping next instruction if V{x.ToString("X1")} != {nn.ToString("X2")}.");
 
         // Make sure x is within bounds
-        x = (byte)(x & 0xF);
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
 
         if (registers.v[x] != nn)
         {
@@ -380,13 +447,225 @@ public class Chip8
         if (debug) Console.WriteLine($"CHIP8: Executing 5XY0, Skipping next instruction if V{x.ToString("X1")} == V{y.ToString("X1")}.");
 
         // Make sure x and y are within bounds
-        x = (byte)(x & 0xF);
-        y = (byte)(y & 0xF);
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
         if (registers.v[x] == registers.v[y])
         {
             // Skip next instruction
             pc += 0x2;
         }
+    }
+
+    public void Execute6XNN(byte x, byte nn)
+    {
+        // Store NN in VX
+        if (debug) Console.WriteLine($"CHIP8: Executing 6XNN, Storing {nn.ToString("X2")} in V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Store nn in vx
+        registers.v[x] = nn;
+    }
+
+    public void Execute7XNN(byte x, byte nn)
+    {
+        // Add NN to VX
+        if (debug) Console.WriteLine($"CHIP8: Executing 7XNN, Adding {nn.ToString("X2")} to V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Add nn to vx
+        registers.v[x] += nn;
+    }
+
+    public void Execute8XY0(byte x, byte y)
+    {
+        // Set VX to VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY0, Setting V{x.ToString("X1")} to V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set vx to vy
+        registers.v[x] = registers.v[y];
+    }
+
+    public void Execute8XY1(byte x, byte y)
+    {
+        // Set VX to bitwise OR of VX and VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY1, Setting V{x.ToString("X1")} to V{x.ToString("X1")} | V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set vx to vx | vy
+        registers.v[x] = (byte)(registers.v[x] | registers.v[y]);
+
+        // Quirk Reset VF
+        registers.v[0xF] = 0;
+    }
+
+    public void Execute8XY2(byte x, byte y)
+    {
+        // Set VX to bitwise AND of VX and VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY2, Setting V{x.ToString("X1")} to V{x.ToString("X1")} & V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set vx to vx & vy
+        registers.v[x] = (byte)(registers.v[x] & registers.v[y]);
+
+        // Quirk Reset VF
+        registers.v[0xF] = 0;
+    }
+
+    public void Execute8XY3(byte x, byte y)
+    {
+        // Set VX to bitwise XOR of VX and VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY3, Setting V{x.ToString("X1")} to V{x.ToString("X1")} ^ V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set vx to vx ^ vy
+        registers.v[x] = (byte)(registers.v[x] ^ registers.v[y]);
+
+        // Quirk Reset VF
+        registers.v[0xF] = 0;
+    }
+
+    public void Execute8XY4(byte x, byte y)
+    {
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY4, Adding V{y.ToString("X1")} to V{x.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Add VY to VX
+        UInt16 sum = (UInt16)(registers.v[x] + registers.v[y]);
+
+        // Set VX to the sum
+        registers.v[x] = (byte)(sum & 0xFF);
+
+        // Set VF to 1 if there is a carry else 0
+        registers.v[0xF] = sum > 0xFF ? (byte)0x1 : (byte)0x0;
+    }
+
+    public void Execute8XY5(byte x, byte y)
+    {
+        // Subtract VY from VX
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY5, Subtracting V{y.ToString("X1")} from V{x.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set borrow
+        byte borrow = registers.v[x] > registers.v[y] ? (byte)0x1 : (byte)0x0;
+
+        // Subtract VY from VX
+        registers.v[x] -= registers.v[y];
+
+        // Set VF to 0 if there is a borrow else 1
+        registers.v[0xF] = borrow;
+    }
+
+    public void Execute8XY6(byte x, byte y)
+    {
+        // Set VX to VY and shift VX one bit to the right. Set VF to the value of the least significant bit of VX before the shift.
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY6, Shifting V{x.ToString("X1")} one bit to the right.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set least significant bit
+        byte leastSignificant = (byte)(registers.v[x] & 0x1);
+
+        // Shift VX one bit to the right
+        registers.v[x] = (byte)(registers.v[x] >> 1);
+
+        // Set VF to the value of the least significant bit of VX before the shift
+        registers.v[0xF] = leastSignificant;
+    }
+
+    public void Execute8XY7(byte x, byte y)
+    {
+        // Set VX to the result of subtracting VX from VY. VF is set to 0 if there is a borrow, and 1 if there is not.
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XY7, Subtracting V{x.ToString("X1")} from V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set borrow
+        byte borrow = registers.v[y] > registers.v[x] ? (byte)0x1 : (byte)0x0;
+
+        // Subtract VX from VY
+        registers.v[x] = (byte)(registers.v[y] - registers.v[x]);
+
+        // Set VF to 0 if there is a borrow else 1
+        registers.v[0xF] = borrow;
+    }
+
+    public void Execute8XYE(byte x, byte y)
+    {
+        // Set VX to VY and shift VX one bit to the left. Set VF to the value of the most significant bit of VX before the shift.
+        if (debug) Console.WriteLine($"CHIP8: Executing 8XYE, Shifting V{x.ToString("X1")} one bit to the left.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        // Set most significant bit
+        byte mostSignificant = (byte)((registers.v[x] >> 7) & 0x1);
+
+        // Shift VX one bit to the left
+        registers.v[x] = (byte)(registers.v[x] << 1);
+
+        // Set VF to the value of the most significant bit of VX before the shift
+        registers.v[0xF] = mostSignificant;
     }
 
     public Chip8(string fileName)
@@ -401,5 +680,29 @@ public class Chip8
 
         LoadFont();
         LoadFile(fileName);
+    }
+}
+
+public static class Errors
+{
+    public static void ErrorOutOfBounds(UInt16 address)
+    {
+        Console.WriteLine($"Error: Address {address.ToString("X4")} is out of bounds.");
+        Environment.Exit(1);
+    }
+    public static void ErrorInvalidOpcode(UInt16 opcode)
+    {
+        Console.WriteLine($"Error: Invalid opcode {opcode.ToString("X4")}");
+        Environment.Exit(1);
+    }
+    public static void ErrorEmptyStack()
+    {
+        Console.WriteLine("Error: Stack is empty.");
+        Environment.Exit(1);
+    }
+    public static void ErrorInvalidRegister(byte x)
+    {
+        Console.WriteLine($"Error: Invalid register {x.ToString("X2")}");
+        Environment.Exit(1);
     }
 }
