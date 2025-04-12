@@ -1,4 +1,6 @@
-﻿class Program
+﻿using System.Diagnostics;
+
+class Program
 {
     static void Main(string[] args)
     {
@@ -41,17 +43,35 @@
 
             // Create chip8
             Chip8 chip8 = new Chip8(fileName, debug);
-            //chip8.WriteMemory();
+            Stopwatch stopwatch = new Stopwatch();
+            const double frameTime = 1000.0 / 60.0; // 60 FPS
 
-            while(true)
+            while (true)
             {
-                chip8.RunChip8();
+                stopwatch.Restart();
+
+                for (int i = 0; i < 11; i++)
+                {
+                    chip8.RunChip8();
+                }
+
+                chip8.DisplayScreen();
+
+                // Wait for next frame
+                stopwatch.Stop();
+                double elapsed = stopwatch.Elapsed.TotalMilliseconds;
+                double sleepTime = frameTime - elapsed;
+
+                if (sleepTime > 0)
+                {
+                    Thread.Sleep((int)sleepTime);
+                }
             }
         }
     }
 }
 
-public struct Registers()
+public class Registers()
 {
     // Data Registers range from V0 to VF
     // 16 in total
@@ -154,7 +174,7 @@ public class Chip8
     {
         if (address >= memory.Length)
         {
-            Console.WriteLine("CHIP8: Reached the end of memory, exiting program.");
+            Errors.ErrorOutOfBounds(address);
             Environment.Exit(0);
         }
 
@@ -163,7 +183,7 @@ public class Chip8
 
         if ((address + 1) >= memory.Length)
         {
-            Console.WriteLine("Error: Program Counter reached an out of bounds range.");
+            Errors.ErrorOutOfBounds((ushort)(address + 1));
             Environment.Exit(1);
         }
 
@@ -307,25 +327,93 @@ public class Chip8
                 break;
 
             case 0x9:
-                Console.WriteLine("9");
+                switch (opcode & 0xF)
+                {
+                    case 0x0:
+                        // Skip next instruction if VX != VY
+                        Execute9XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        break;
+                    default:
+                        // Invalid opcode
+                        Errors.ErrorInvalidOpcode(opcode);
+                        break;
+                }
                 break;
             case 0xA:
-                Console.WriteLine("A");
+                // Set I to NNN
+                ExecuteANNN((UInt16)(opcode & 0xFFF));
                 break;
             case 0xB:
-                Console.WriteLine("B");
+                // Jump to NNN + V0
+                ExecuteBNNN((UInt16)(opcode & 0xFFF));
                 break;
             case 0xC:
-                Console.WriteLine("C");
+                // Set VX to a random number AND NN
+                ExecuteCXNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
                 break;
             case 0xD:
-                Console.WriteLine("D");
+                // Draw sprite to screen.
+                // Set VF to 1 if pixel is set to off
+                ExecuteDXYN((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF), (byte)(opcode & 0xF));
                 break;
             case 0xE:
-                Console.WriteLine("E");
+                switch (opcode & 0xFF)
+                {
+                    case 0x9E:
+                        // Skip next instruction if key with the value of VX is pressed
+                        break;
+                    case 0xA1:
+                        // Skip next instruction if key with the value of VX is not pressed
+                        break;
+                    default:
+                        // Invalid opcode
+                        Errors.ErrorInvalidOpcode(opcode);
+                        break;
+                }
                 break;
             case 0xF:
-                Console.WriteLine("F");
+                switch (opcode & 0xFF)
+                {
+                    case 0x07:
+                        // Store the current value of the delay timer in VX
+                        ExecuteFX07((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x0A:
+                        // Wait for a key press and store the value of the key in VX
+                        break;
+                    case 0x15:
+                        // Set the delay timer to VX
+                        ExecuteFX15((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x18:
+                        // Set the sound timer to VX
+                        ExecuteFX18((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x1E:
+                        // Add VX to I
+                        ExecuteFX1E((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x29:
+                        // Set I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
+                        ExecuteFX29((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x33:
+                        // Store BCD representation of VX in memory locations I, I+1, and I+2
+                        ExecuteFX33((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x55:
+                        // Store registers V0 through VX in memory starting at address I
+                        ExecuteFX55((byte)((opcode >> 8) & 0xF));
+                        break;
+                    case 0x65:
+                        // Read registers V0 through VX from memory starting at address I
+                        ExecuteFX65((byte)((opcode >> 8) & 0xF));
+                        break;
+                    default:
+                        // Invalid opcode
+                        Errors.ErrorInvalidOpcode(opcode);
+                        break;
+                }
                 break;
         }
     }
@@ -334,10 +422,6 @@ public class Chip8
     {
         // Execute instruction at NNN
         if (debug) Console.WriteLine($"CHIP8: Executing 0NNN, Running opcode at 0x0{address.ToString("X3")}.");
-
-        // Make sure address is within bounds
-        if (address >= memory.Length)
-            Errors.ErrorOutOfBounds(address);
 
         // Get opcode from memory
         UInt16 opcode = FetchOpcode(address);
@@ -372,10 +456,6 @@ public class Chip8
         // Pop the top address from the stack
         UInt16 address = stack.Pop();
 
-        // Make sure address is within bounds
-        if (address >= memory.Length)
-            Errors.ErrorOutOfBounds(address);
-
         // Set program counter to address
         pc = address;
     }
@@ -385,10 +465,6 @@ public class Chip8
         // Jump to NNN
         if (debug) Console.WriteLine($"CHIP8: Executing 1NNN, Jumping to 0x0{address.ToString("X3")}.");
 
-        // Make sure address is within bounds
-        if (address >= memory.Length)
-            Errors.ErrorOutOfBounds(address);
-
         // Set program counter to address
         pc = address;
     }
@@ -397,10 +473,6 @@ public class Chip8
     {
         // Execute subroutine at NNN
         if (debug) Console.WriteLine($"CHIP8: Executing 2NNN, Executing subroutine at 0x0{address.ToString("X3")}.");
-
-        // Make sure address is within bounds
-        if (address >= memory.Length)
-            Errors.ErrorOutOfBounds(address);
 
         // Push the current program counter to the stack
         stack.Push(pc);
@@ -666,6 +738,251 @@ public class Chip8
 
         // Set VF to the value of the most significant bit of VX before the shift
         registers.v[0xF] = mostSignificant;
+    }
+
+    public void Execute9XY0(byte x, byte y)
+    {
+        // Skip next instruction if VX != VY
+        if (debug) Console.WriteLine($"CHIP8: Executing 9XY0, Skipping next instruction if V{x.ToString("X1")} != V{y.ToString("X1")}.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        if (registers.v[x] != registers.v[y])
+        {
+            // Skip next instruction
+            pc += 0x2;
+        }
+    }
+
+    public void ExecuteANNN(UInt16 address)
+    {
+        // Set I to NNN
+        if (debug) Console.WriteLine($"CHIP8: Executing ANNN, Setting I to 0x0{address.ToString("X3")}.");
+
+        // Set I to address
+        registers.i = address;
+    }
+
+    public void ExecuteBNNN(UInt16 address)
+    {
+        // Jump to NNN + V0
+        if (debug) Console.WriteLine($"CHIP8: Executing BNNN, Jumping to 0x0{address.ToString("X3")} + V0.");
+
+        // Set program counter to address + V0
+        UInt16 jumpAddress = (UInt16)(address + registers.v[0]);
+        pc = jumpAddress;
+    }
+
+    public void ExecuteCXNN(byte x, byte nn)
+    {
+        // Set VX to a random number AND NN
+        if (debug) Console.WriteLine($"CHIP8: Executing CXNN, Setting V{x.ToString("X1")} to a random number AND {nn.ToString("X2")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Set vx to a random number AND nn
+        Random rand = new Random();
+        registers.v[x] = (byte)(rand.Next(0x00, 0xFF) & nn);
+    }
+
+    public void ExecuteDXYN(byte x, byte y, byte n)
+    {
+        if (debug) Console.WriteLine($"CHIP8: Executing DXYN, Drawing sprite at V{x.ToString("X1")}, V{y.ToString("X1")} with {n.ToString("X2")} bytes of sprite data starting at address I.");
+
+        // Make sure x and y are within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        if (y > 0xF)
+            Errors.ErrorInvalidRegister(y);
+
+        byte xPos = (byte)(registers.v[x] % 64);
+        byte yPos = (byte)(registers.v[y] % 32);
+
+        // Set VF to 0
+        registers.v[0xF] = 0;
+
+        for (int row = 0; row < n; row++)
+        {
+            if ((yPos + row) >= display.GetLength(1))
+                break;
+
+            // Get the nth byte of sprite data from address I
+            if ((registers.i + row) >= memory.Length)
+                Errors.ErrorOutOfBounds((UInt16)(registers.i + row));
+
+            byte spriteData = memory[registers.i + row];
+
+            for (int col = 0; col < 8; col++)
+            {
+                if ((xPos + col) >= display.GetLength(0))
+                    break;
+
+                bool currentPixel = display[xPos + col, yPos + row];
+                bool currentSpritePixel = (spriteData >> (7 - col) & 0b1) == 0b1;
+
+                if (currentPixel && currentSpritePixel)
+                {
+                    // If the pixel is already set, set VF to 1
+                    registers.v[0xF] = 1;
+
+                    // Set the pixel to off
+                    display[xPos + col, yPos + row] = false;
+                }
+
+                if (!currentPixel && currentSpritePixel)
+                {
+                    // If the pixel is not set, set it to on
+                    display[xPos + col, yPos + row] = true;
+                }
+            }
+        }
+    }
+
+
+    public void ExecuteFX07(byte x)
+    {
+        // Store the current value of the delay timer in VX
+        if (debug) Console.WriteLine($"CHIP8: Executing FX07, Storing delay timer in V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Store the current value of the delay timer in VX
+        registers.v[x] = delayTimer;
+    }
+
+    public void ExecuteFX15(byte x)
+    {
+        // Set the delay timer to VX
+        if (debug) Console.WriteLine($"CHIP8: Executing FX15, Setting delay timer to V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Set the delay timer to VX
+        delayTimer = registers.v[x];
+    }
+
+    public void ExecuteFX18(byte x)
+    {
+        // Set the sound timer to VX
+        if (debug) Console.WriteLine($"CHIP8: Executing FX18, Setting sound timer to V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Set the sound timer to VX
+        soundTimer = registers.v[x];
+    }
+
+    public void ExecuteFX1E(byte x)
+    {
+        // Add VX to I
+        if (debug) Console.WriteLine($"CHIP8: Executing FX1E, Adding V{x.ToString("X1")} to I.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Add VX to I
+        registers.i += registers.v[x];
+    }
+
+    public void ExecuteFX29(byte x)
+    {
+        // Set I to the location of the sprite for the character in VX.
+        if (debug) Console.WriteLine($"CHIP8: Executing FX29, Setting I to the location of the sprite for V{x.ToString("X1")}.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Set I to the location of the sprite for the character in VX
+        registers.i = (UInt16)(registers.v[x] * 5);
+    }
+
+    public void ExecuteFX33(byte x)
+    {
+        // Store BCD representation of VX in memory locations I, I+1, and I+2
+        if (debug) Console.WriteLine($"CHIP8: Executing FX33, Storing BCD representation of V{x.ToString("X1")} in memory locations I, I+1, and I+2.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Make sure I is within bounds
+        if (registers.i > memory.Length)
+            Errors.ErrorOutOfBounds(registers.i);
+        if ((registers.i + 1) > memory.Length)
+            Errors.ErrorOutOfBounds((UInt16)(registers.i + 1));
+        if ((registers.i + 2) > memory.Length)
+            Errors.ErrorOutOfBounds((UInt16)(registers.i + 2));
+
+        // Store BCD representation of VX in memory locations I, I+1, and I+2
+        memory[registers.i] = (byte)(registers.v[x] / 100); // Get hundreths position. 255 / 100 = 2
+        memory[registers.i + 1] = (byte)((registers.v[x] / 10) % 10);   // Get tenths position. 255 / 10 = 25 % 10 = 5
+        memory[registers.i + 2] = (byte)(registers.v[x] % 10);  // Get ones position. 255 % 10 = 5
+    }
+
+    public void ExecuteFX55(byte x)
+    {
+        // Store registers V0 through VX in memory starting at address I
+        if (debug) Console.WriteLine($"CHIP8: Executing FX55, Storing registers V0 through V{x.ToString("X1")} in memory starting at address I.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Store registers V0 through VX in memory starting at address I
+        for (byte i = 0; i <= x; i++)
+        {
+            if ((registers.i + i) > memory.Length)
+                Errors.ErrorOutOfBounds((UInt16)(registers.i + i));
+
+            memory[registers.i + i] = registers.v[i];
+        }
+    }
+
+    public void ExecuteFX65(byte x)
+    {
+        // Read registers V0 through VX from memory starting at address I
+        if (debug) Console.WriteLine($"CHIP8: Executing FX65, Reading registers V0 through V{x.ToString("X1")} from memory starting at address I.");
+
+        // Make sure x is within bounds
+        if (x > 0xF)
+            Errors.ErrorInvalidRegister(x);
+
+        // Read registers V0 through VX from memory starting at address I
+        for (byte i = 0; i <= x; i++)
+        {
+            if ((registers.i + i) > memory.Length)
+                Errors.ErrorOutOfBounds((UInt16)(registers.i + i));
+
+            registers.v[i] = memory[registers.i + i];
+        }
+    }
+
+    public void DisplayScreen()
+    {
+        Console.WriteLine("\nCHIP8: Displaying screen.\n");
+        for (int i = 0; i < display.GetLength(1); i++)
+        {
+            for (int j = 0; j < display.GetLength(0); j++)
+            {
+                Console.Write(display[j, i] ? "██" : "  ");
+            }
+            Console.WriteLine();
+        }
     }
 
     public Chip8(string fileName)
