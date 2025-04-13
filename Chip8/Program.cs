@@ -10,12 +10,17 @@ class Program
         Sdl _sdl = null!;
         Window* _window; // Use a pointer for the Window type
         Renderer* _renderer; // Use a pointer for the Renderer type
-        float _scale = 10.0f; // Scale factor for the window size
+        int _scale = Constants.DEFAULT_SCALE; // Scale factor for the window size
 
         // Initialize the argument service and chip8 core
         ArgumentService arguments = new ArgumentService(args);
         Chip8Core chip8 = new Chip8Core(arguments);
         Stopwatch stopwatch = new Stopwatch();
+
+        if (arguments.scale.HasValue)
+        {
+            _scale = arguments.scale.Value;
+        }
 
         _sdl = Sdl.GetApi();
 
@@ -30,18 +35,32 @@ class Program
             "Chip8 Emulator",
             100,
             100,
-            (int)(Constants.SCREEN_WIDTH * _scale),
-            (int)(Constants.SCREEN_HEIGHT * _scale),
+            Constants.SCREEN_WIDTH * _scale,
+            Constants.SCREEN_HEIGHT * _scale,
             (uint)WindowFlags.Shown);
 
         // Create renderer
         _renderer = _sdl.CreateRenderer(_window, -1, (uint)RendererFlags.Accelerated);
 
         VideoService videoService = new VideoService(_sdl, _window, _renderer, _scale);
+        Event sdlEvent = new Event();
 
         while (true)
         {
             stopwatch.Restart();
+
+            // Check if closing window
+            if (_sdl.PollEvent(&sdlEvent) != 0)
+            {
+                if (sdlEvent.Type == (uint)EventType.Quit)
+                {
+                    videoService.Dispose();
+                    Environment.Exit(0);
+                }
+            }
+
+            // Decrement timers
+            chip8.DecrementTimers();
 
             // Run the chip8 core then display the screen.
             for (int i = 0; i < Constants.INSTRUCTIONS_PER_FRAME; i++)

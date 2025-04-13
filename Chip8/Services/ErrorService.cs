@@ -14,7 +14,8 @@ namespace Chip8.Services
         MissingFile,
         MissingArguments,
         UnexpectedError,
-        InvalidRegister
+        InvalidRegister,
+        InvalidArgument
     }
 
     public static class ErrorService

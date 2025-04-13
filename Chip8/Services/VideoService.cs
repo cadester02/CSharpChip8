@@ -9,9 +9,9 @@ namespace Chip8.Services
         private readonly unsafe Window* _window; // Use a pointer for the Window type
         private readonly unsafe Renderer* _renderer; // Use a pointer for the Renderer type
 
-        private readonly float _scale;
+        private readonly int _scale;
 
-        public unsafe VideoService(Sdl sdl, Window* window, Renderer* renderer, float scale)
+        public unsafe VideoService(Sdl sdl, Window* window, Renderer* renderer, int scale)
         {
             _sdl = sdl;
             _window = window;
@@ -34,8 +34,8 @@ namespace Chip8.Services
                     {
                         Rectangle<int> rect = new Rectangle<int>
                         {
-                            Origin = new Vector2D<int>((int)(col * _scale), (int)(row * _scale)),
-                            Size = new Vector2D<int>((int)_scale, (int)_scale)
+                            Origin = new Vector2D<int>(col * _scale, row * _scale),
+                            Size = new Vector2D<int>(_scale, _scale)
                         };
 
                         // Draw a rectangle for each pixel  
@@ -45,6 +45,13 @@ namespace Chip8.Services
             }
 
             _sdl.RenderPresent(_renderer); // Update the screen
+        }
+
+        public unsafe void Dispose()
+        {
+            _sdl.DestroyRenderer(_renderer);
+            _sdl.DestroyWindow(_window);
+            _sdl.Quit();
         }
     }
 }

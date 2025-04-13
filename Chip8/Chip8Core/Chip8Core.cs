@@ -134,6 +134,15 @@
             DecodeInstruction(opcode);
         }
 
+        public void DecrementTimers()
+        {
+            if (delayTimer > 0)
+                delayTimer--;
+
+            if (soundTimer > 0)
+                soundTimer--;
+        }
+
         public void DecodeInstruction(UInt16 opcode)
         {
             byte instructionNibble = (byte)((opcode >> 12) & 0xF);

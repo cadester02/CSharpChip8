@@ -8,6 +8,7 @@
         public string[] args { get; private set; } = Array.Empty<string>();
         public string filePath { get; private set; } = string.Empty;
         public bool debugMode { get; private set; } = false;
+        public int? scale { get; private set; } = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArgumentService"/> class.
@@ -45,6 +46,23 @@
                         i++;
                         break;
 
+                    // Scale
+                    case ("-s"):
+                    case ("--scale"):
+                        if ((i + 1) >= args.Length)
+                        {
+                            ErrorService.HandleError(ErrorType.MissingArguments, "No scale provided after -s or --scale.");
+                        }
+
+                        if (!int.TryParse(args[i + 1], out int parsedScale))
+                        {
+                            ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be an integer.");
+                        }
+
+                        scale = parsedScale;
+                        i++;
+                        break;
+
                     // Help
                     case ("-h"):
                     case ("--help"):
@@ -67,6 +85,7 @@
             Console.WriteLine("Options:");
             Console.WriteLine("\t-d, --debug\tEnable debug mode");
             Console.WriteLine("\t-f, --file\tSpecify the file to load");
+            Console.WriteLine("\t-s, --scale\tSpecify the scale of the window (default: 10)");
             Console.WriteLine("\t-h, --help \tShow this help message");
         }
     }
