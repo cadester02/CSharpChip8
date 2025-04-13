@@ -206,11 +206,19 @@ public class Chip8
 
     public void DecodeInstruction(UInt16 opcode)
     {
-        // Read only the first nibble
-        switch ((opcode >> 12) & 0xF)
+        byte instructionNibble = (byte)((opcode >> 12) & 0xF);
+
+        byte x = (byte)((opcode >> 8) & 0xF);
+        byte y = (byte)((opcode >> 4) & 0xF);
+
+        byte n = (byte)(opcode & 0xF);
+        byte nn = (byte)(opcode & 0xFF);
+        UInt16 nnn = (UInt16)(opcode & 0xFFF);
+
+        switch (instructionNibble)
         {
             case 0x0:
-                switch(opcode & 0xFFF)
+                switch(nnn)
                 {
                     case 0x0E0:
                         // Clear Screen
@@ -222,29 +230,29 @@ public class Chip8
                         break;
                     default:
                         // Execute instruction at NNN
-                        Execute0NNN((UInt16)(opcode & 0xFFF));
+                        Execute0NNN(nnn);
                         break;
                 }
                 break;
 
             case 0x1:
                 // Jump to NNN
-                Execute1NNN((UInt16)(opcode & 0xFFF));
+                Execute1NNN(nnn);
                 break;
 
             case 0x2:
                 // Execute subroutine at NNN
-                Execute2NNN((UInt16)(opcode & 0xFFF));
+                Execute2NNN(nnn);
                 break;
 
             case 0x3:
                 // Skip following instruction if VX == NN
-                Execute3XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
+                Execute3XNN(x, nn);
                 break;
 
             case 0x4:
                 // Skip following instruction if VX != NN
-                Execute4XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
+                Execute4XNN(x, nn);
                 break;
 
             case 0x5:
@@ -253,7 +261,7 @@ public class Chip8
                     // 5XY0
                     case 0x0:
                         // Skip following instruction if VX == VY
-                        Execute5XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute5XY0(x, y);
                         break;
                     default:
                         // Invalid opcode
@@ -264,12 +272,12 @@ public class Chip8
 
             case 0x6:
                 // Store NN in VX
-                Execute6XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
+                Execute6XNN(x, nn);
                 break;
 
             case 0x7:
                 // Add NN to VX
-                Execute7XNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
+                Execute7XNN(x, nn);
                 break;
 
             case 0x8:
@@ -277,47 +285,47 @@ public class Chip8
                 {
                     case 0x0:
                         // Set VX to VY
-                        Execute8XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY0(x, y);
                         break;
                     case 0x1:
                         // Set VX to bitwise OR of VX and VY
                         // Quirk Reset VF
-                        Execute8XY1((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY1(x, y);
                         break;
                     case 0x2:
                         // Set VX to bitwise AND of VX and VY
                         // Quirk Reset VF
-                        Execute8XY2((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY2(x, y);
                         break;
                     case 0x3:
                         // Set VX to bitwise XOR of VX and VY
                         // Quirk Reset VF
-                        Execute8XY3((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY3(x, y);
                         break;
                     case 0x4:
                         // Add VY to VX
                         // Set VF to 1 if there is a carry else 0
-                        Execute8XY4((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY4(x, y);
                         break;
                     case 0x5:
                         // Subtract VY from VX
                         // Set VF to 0 if there is a borrow else 1
-                        Execute8XY5((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY5(x, y);
                         break;
                     case 0x6:
                         // Set VX to VY and shift VX one bit to the right. Set VF to the value of the least significant bit of VX before the shift.
                         // Quirk Don't set VX to VY only shift VX
-                        Execute8XY6((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY6(x, y);
                         break;
                     case 0x7:
                         // Set VX to the result of subtracting VX from VY. VF is set to 0 if there is a borrow, and 1 if there is not.
                         // Set VF to 0 if there is a borrow else 1
-                        Execute8XY7((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XY7(x, y);
                         break;
                     case 0xE:
                         // Set VX to VY and shift VX one bit to the left. Set VF to the value of the most significant bit of VX before the shift.
                         // Quirk Don't set VX to VY only shift VX
-                        Execute8XYE((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute8XYE(x, y);
                         break;
                     default:
                         // Invalid opcode
@@ -331,7 +339,7 @@ public class Chip8
                 {
                     case 0x0:
                         // Skip next instruction if VX != VY
-                        Execute9XY0((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF));
+                        Execute9XY0(x, y);
                         break;
                     default:
                         // Invalid opcode
@@ -341,20 +349,20 @@ public class Chip8
                 break;
             case 0xA:
                 // Set I to NNN
-                ExecuteANNN((UInt16)(opcode & 0xFFF));
+                ExecuteANNN(nnn);
                 break;
             case 0xB:
                 // Jump to NNN + V0
-                ExecuteBNNN((UInt16)(opcode & 0xFFF));
+                ExecuteBNNN(nnn);
                 break;
             case 0xC:
                 // Set VX to a random number AND NN
-                ExecuteCXNN((byte)((opcode >> 8) & 0xF), (byte)(opcode & 0xFF));
+                ExecuteCXNN(x, nn);
                 break;
             case 0xD:
                 // Draw sprite to screen.
                 // Set VF to 1 if pixel is set to off
-                ExecuteDXYN((byte)((opcode >> 8) & 0xF), (byte)((opcode >> 4) & 0xF), (byte)(opcode & 0xF));
+                ExecuteDXYN(x, y, (byte)(opcode & 0xF));
                 break;
             case 0xE:
                 switch (opcode & 0xFF)
@@ -376,38 +384,38 @@ public class Chip8
                 {
                     case 0x07:
                         // Store the current value of the delay timer in VX
-                        ExecuteFX07((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX07(x);
                         break;
                     case 0x0A:
                         // Wait for a key press and store the value of the key in VX
                         break;
                     case 0x15:
                         // Set the delay timer to VX
-                        ExecuteFX15((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX15(x);
                         break;
                     case 0x18:
                         // Set the sound timer to VX
-                        ExecuteFX18((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX18(x);
                         break;
                     case 0x1E:
                         // Add VX to I
-                        ExecuteFX1E((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX1E(x);
                         break;
                     case 0x29:
                         // Set I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
-                        ExecuteFX29((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX29(x);
                         break;
                     case 0x33:
                         // Store BCD representation of VX in memory locations I, I+1, and I+2
-                        ExecuteFX33((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX33(x);
                         break;
                     case 0x55:
                         // Store registers V0 through VX in memory starting at address I
-                        ExecuteFX55((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX55(x);
                         break;
                     case 0x65:
                         // Read registers V0 through VX from memory starting at address I
-                        ExecuteFX65((byte)((opcode >> 8) & 0xF));
+                        ExecuteFX65(x);
                         break;
                     default:
                         // Invalid opcode
@@ -435,11 +443,11 @@ public class Chip8
         if (debug) Console.WriteLine("CHIP8: Executing 00E0, Clearing screen.");
 
         // Clear the screen
-        for (int i = 0; i < display.GetLength(0); i++)
+        for (int row = 0; row < display.GetLength(0); row++)
         {
-            for (int j = 0; j < display.GetLength(1); j++)
+            for (int col = 0; col < display.GetLength(1); col++)
             {
-                display[i, j] = false;
+                display[row, col] = false;
             }
         }
     }
