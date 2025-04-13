@@ -1,22 +1,43 @@
 ﻿using System.Diagnostics;
 using Chip8.Chip8Core;
+using Chip8.Services;
+using Silk.NET.SDL;
 
 class Program
 {
-    static void Main(string[] args)
+    unsafe static void Main(string[] args)
     {
+        Sdl _sdl = null!;
+        Window* _window; // Use a pointer for the Window type
+        Renderer* _renderer; // Use a pointer for the Renderer type
+        float _scale = 10.0f; // Scale factor for the window size
+
         // Initialize the argument service and chip8 core
         ArgumentService arguments = new ArgumentService(args);
         Chip8Core chip8 = new Chip8Core(arguments);
-
-        // Run the main loop
-        MainLoop(chip8);
-    }
-
-    static void MainLoop(Chip8Core chip8)
-    {
-        // Start frame counter
         Stopwatch stopwatch = new Stopwatch();
+
+        _sdl = Sdl.GetApi();
+
+        // Initialize SDL
+        if (_sdl.Init(Sdl.InitVideo) != 0)
+        {
+            ErrorService.HandleError(ErrorType.UnexpectedError, "Failed to initialize SDL.");
+        }
+
+        // Create window
+        _window = _sdl.CreateWindow(
+            "Chip8 Emulator",
+            100,
+            100,
+            (int)(Constants.SCREEN_WIDTH * _scale),
+            (int)(Constants.SCREEN_HEIGHT * _scale),
+            (uint)WindowFlags.Shown);
+
+        // Create renderer
+        _renderer = _sdl.CreateRenderer(_window, -1, (uint)RendererFlags.Accelerated);
+
+        VideoService videoService = new VideoService(_sdl, _window, _renderer, _scale);
 
         while (true)
         {
@@ -27,7 +48,7 @@ class Program
             {
                 chip8.RunChip8();
             }
-            chip8.DisplayScreen();
+            videoService.Render(chip8.display);
 
             // Wait for next frame
             stopwatch.Stop();
@@ -36,7 +57,7 @@ class Program
 
             if (sleepTime > 0)
             {
-                Thread.Sleep(sleepTime);
+                System.Threading.Thread.Sleep(sleepTime);
             }
         }
     }

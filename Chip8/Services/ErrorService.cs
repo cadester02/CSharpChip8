@@ -19,9 +19,15 @@ namespace Chip8.Services
 
     public static class ErrorService
     {
-        public static void HandleError(ErrorType error, string message)
+        public static void HandleError(ErrorType? error, string message)
         {
             Console.WriteLine($"Error {error.ToString()}:\t{message}");
+            Environment.Exit(1);
+        }
+
+        public static void HandleError(string message)
+        {
+            Console.WriteLine($"Error {ErrorType.UnexpectedError.ToString()}:\t{message}");
             Environment.Exit(1);
         }
     }

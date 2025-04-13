@@ -11,6 +11,9 @@ namespace Chip8.Constants
         public const double FRAME_TIME = 1000.0 / 60.0; // 60 FPS
         public const int INSTRUCTIONS_PER_FRAME = 11; // Number of instructions to execute per frame
 
+        public const int SCREEN_WIDTH = 64; // Chip 8 screen width
+        public const int SCREEN_HEIGHT = 32; // Chip 8 screen height
+
         // Chip 8 font
         public static readonly byte[] FONT = new byte[]
         {
