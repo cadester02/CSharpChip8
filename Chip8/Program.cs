@@ -665,7 +665,7 @@ public class Chip8
             Errors.ErrorInvalidRegister(y);
 
         // Set borrow
-        byte borrow = registers.v[x] > registers.v[y] ? (byte)0x1 : (byte)0x0;
+        byte borrow = registers.v[x] >= registers.v[y] ? (byte)0x1 : (byte)0x0;
 
         // Subtract VY from VX
         registers.v[x] -= registers.v[y];
@@ -709,7 +709,7 @@ public class Chip8
             Errors.ErrorInvalidRegister(y);
 
         // Set borrow
-        byte borrow = registers.v[y] > registers.v[x] ? (byte)0x1 : (byte)0x0;
+        byte borrow = registers.v[y] >= registers.v[x] ? (byte)0x1 : (byte)0x0;
 
         // Subtract VX from VY
         registers.v[x] = (byte)(registers.v[y] - registers.v[x]);
