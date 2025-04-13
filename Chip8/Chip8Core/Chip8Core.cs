@@ -35,6 +35,22 @@
         // Plays a beep if greater than 1
         public byte soundTimer { get; private set; } = 0;
 
+        /*
+         * INITIALIZATION
+         */
+
+        public Chip8Core(ArgumentService arguments)
+        {
+            debug = arguments.debugMode;
+
+            LoadFont();
+            LoadFile(arguments.filePath);
+        }
+
+        /*
+         * LOADING
+         */
+
         private void LoadFile(string fileName)
         {
             if (debug) Console.WriteLine($"CHIP8: Loading {fileName} into Memory");
@@ -60,29 +76,9 @@
             Array.Copy(Constants.Constants.FONT, 0, memory, 0x00, Constants.Constants.FONT.Length);
         }
 
-        public UInt16 FetchOpcode(UInt16 address)
-        {
-            CheckAddressBounds(address);
-            CheckAddressBounds((UInt16)(address + 1));
-
-            // Get instruction
-            byte highByte = memory[address];
-            byte lowByte = memory[address + 1];
-
-            // Create the opcode.
-            UInt16 opcode = (UInt16)((highByte << 8) | lowByte);
-
-            return opcode;
-        }
-
-        public void RunChip8()
-        {
-            UInt16 opcode = FetchOpcode(pc);
-            // Increment Program Counter
-            pc += 0x2;
-
-            DecodeInstruction(opcode);
-        }
+        /*
+         * DEBUG AND ERRORS
+         */
 
         public void InvalidOpcode(UInt16 opcode)
         {
@@ -107,6 +103,35 @@
         {
             if (address >= memory.Length)
                 ErrorService.HandleError(ErrorType.OutOfBounds, $"Address {address.ToString("X4")} is out of bounds.");
+        }
+
+        /*
+         * CHIP8 INSTRUCTIONS
+         */
+
+        public UInt16 FetchOpcode(UInt16 address)
+        {
+            CheckAddressBounds(address);
+            CheckAddressBounds((UInt16)(address + 1));
+
+            // Get instruction
+            byte highByte = memory[address];
+            byte lowByte = memory[address + 1];
+
+            // Create the opcode.
+            UInt16 opcode = (UInt16)((highByte << 8) | lowByte);
+
+            return opcode;
+        }
+
+        public void RunChip8()
+        {
+            UInt16 opcode = FetchOpcode(pc);
+            // Increment Program Counter
+            pc += 0x2;
+
+            if (debug) Console.WriteLine($"CHIP8: Executing opcode {opcode.ToString("X4")}.");
+            DecodeInstruction(opcode);
         }
 
         public void DecodeInstruction(UInt16 opcode)
@@ -334,8 +359,6 @@
         public void Execute0NNN(UInt16 address)
         {
             // Execute instruction at NNN
-            if (debug) Console.WriteLine($"CHIP8: Executing 0NNN, Running opcode at 0x0{address.ToString("X3")}.");
-
             // Get opcode from memory
             UInt16 opcode = FetchOpcode(address);
 
@@ -345,8 +368,6 @@
 
         public void Execute00E0()
         {
-            if (debug) Console.WriteLine("CHIP8: Executing 00E0, Clearing screen.");
-
             // Clear the screen
             for (int row = 0; row < display.GetLength(0); row++)
             {
@@ -360,8 +381,6 @@
         public void Execute00EE()
         {
             // Return from a subroutine
-            if (debug) Console.WriteLine("CHIP8: Executing 00EE, Returning from subroutine.");
-
             // Make sure stack is not empty
             if (stack.Count == 0)
                 ErrorService.HandleError(ErrorType.EmptyStack, "Stack is empty, cannot return from subroutine.");
@@ -376,8 +395,6 @@
         public void Execute1NNN(UInt16 address)
         {
             // Jump to NNN
-            if (debug) Console.WriteLine($"CHIP8: Executing 1NNN, Jumping to 0x0{address.ToString("X3")}.");
-
             // Set program counter to address
             pc = address;
         }
@@ -385,19 +402,13 @@
         public void Execute2NNN(UInt16 address)
         {
             // Execute subroutine at NNN
-            if (debug) Console.WriteLine($"CHIP8: Executing 2NNN, Executing subroutine at 0x0{address.ToString("X3")}.");
-
-            // Push the current program counter to the stack
             stack.Push(pc);
-
-            // Set program counter to address
             pc = address;
         }
 
         public void Execute3XNN(byte x, byte nn)
         {
             // Skip next instruction if VX == NN
-            if (debug) Console.WriteLine($"CHIP8: Executing 3XNN, Skipping next instruction if V{x.ToString("X1")} == {nn.ToString("X2")}.");
             CheckRegisterBounds(x);
 
             if (v[x] == nn)
@@ -410,7 +421,6 @@
         public void Execute4XNN(byte x, byte nn)
         {
             // Skip next instruction if VX != NN
-            if (debug) Console.WriteLine($"CHIP8: Executing 4XNN, Skipping next instruction if V{x.ToString("X1")} != {nn.ToString("X2")}.");
             CheckRegisterBounds(x);
 
             if (v[x] != nn)
@@ -423,7 +433,6 @@
         public void Execute5XY0(byte x, byte y)
         {
             // Skip next instruction if VX == VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 5XY0, Skipping next instruction if V{x.ToString("X1")} == V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             if (v[x] == v[y])
@@ -436,7 +445,6 @@
         public void Execute6XNN(byte x, byte nn)
         {
             // Store NN in VX
-            if (debug) Console.WriteLine($"CHIP8: Executing 6XNN, Storing {nn.ToString("X2")} in V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Store nn in vx
@@ -446,7 +454,6 @@
         public void Execute7XNN(byte x, byte nn)
         {
             // Add NN to VX
-            if (debug) Console.WriteLine($"CHIP8: Executing 7XNN, Adding {nn.ToString("X2")} to V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Add nn to vx
@@ -456,7 +463,6 @@
         public void Execute8XY0(byte x, byte y)
         {
             // Set VX to VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY0, Setting V{x.ToString("X1")} to V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set vx to vy
@@ -466,7 +472,6 @@
         public void Execute8XY1(byte x, byte y)
         {
             // Set VX to bitwise OR of VX and VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY1, Setting V{x.ToString("X1")} to V{x.ToString("X1")} | V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set vx to vx | vy
@@ -479,7 +484,6 @@
         public void Execute8XY2(byte x, byte y)
         {
             // Set VX to bitwise AND of VX and VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY2, Setting V{x.ToString("X1")} to V{x.ToString("X1")} & V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set vx to vx & vy
@@ -492,7 +496,6 @@
         public void Execute8XY3(byte x, byte y)
         {
             // Set VX to bitwise XOR of VX and VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY3, Setting V{x.ToString("X1")} to V{x.ToString("X1")} ^ V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set vx to vx ^ vy
@@ -504,7 +507,6 @@
 
         public void Execute8XY4(byte x, byte y)
         {
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY4, Adding V{y.ToString("X1")} to V{x.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Add VY to VX
@@ -520,7 +522,6 @@
         public void Execute8XY5(byte x, byte y)
         {
             // Subtract VY from VX
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY5, Subtracting V{y.ToString("X1")} from V{x.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set borrow
@@ -536,7 +537,6 @@
         public void Execute8XY6(byte x, byte y)
         {
             // Set VX to VY and shift VX one bit to the right. Set VF to the value of the least significant bit of VX before the shift.
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY6, Shifting V{x.ToString("X1")} one bit to the right.");
             CheckRegisterBounds(x, y);
 
             // Set least significant bit
@@ -552,7 +552,6 @@
         public void Execute8XY7(byte x, byte y)
         {
             // Set VX to the result of subtracting VX from VY. VF is set to 0 if there is a borrow, and 1 if there is not.
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XY7, Subtracting V{x.ToString("X1")} from V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             // Set borrow
@@ -568,7 +567,6 @@
         public void Execute8XYE(byte x, byte y)
         {
             // Set VX to VY and shift VX one bit to the left. Set VF to the value of the most significant bit of VX before the shift.
-            if (debug) Console.WriteLine($"CHIP8: Executing 8XYE, Shifting V{x.ToString("X1")} one bit to the left.");
             CheckRegisterBounds(x, y);
 
             // Set most significant bit
@@ -584,7 +582,6 @@
         public void Execute9XY0(byte x, byte y)
         {
             // Skip next instruction if VX != VY
-            if (debug) Console.WriteLine($"CHIP8: Executing 9XY0, Skipping next instruction if V{x.ToString("X1")} != V{y.ToString("X1")}.");
             CheckRegisterBounds(x, y);
 
             if (v[x] != v[y])
@@ -597,8 +594,6 @@
         public void ExecuteANNN(UInt16 address)
         {
             // Set I to NNN
-            if (debug) Console.WriteLine($"CHIP8: Executing ANNN, Setting I to 0x0{address.ToString("X3")}.");
-
             // Set I to address
             i = address;
         }
@@ -606,8 +601,6 @@
         public void ExecuteBNNN(UInt16 address)
         {
             // Jump to NNN + V0
-            if (debug) Console.WriteLine($"CHIP8: Executing BNNN, Jumping to 0x0{address.ToString("X3")} + V0.");
-
             // Set program counter to address + V0
             UInt16 jumpAddress = (UInt16)(address + v[0]);
             pc = jumpAddress;
@@ -616,7 +609,6 @@
         public void ExecuteCXNN(byte x, byte nn)
         {
             // Set VX to a random number AND NN
-            if (debug) Console.WriteLine($"CHIP8: Executing CXNN, Setting V{x.ToString("X1")} to a random number AND {nn.ToString("X2")}.");
             CheckRegisterBounds(x);
 
             // Set vx to a random number AND nn
@@ -626,7 +618,6 @@
 
         public void ExecuteDXYN(byte x, byte y, byte n)
         {
-            if (debug) Console.WriteLine($"CHIP8: Executing DXYN, Drawing sprite at V{x.ToString("X1")}, V{y.ToString("X1")} with {n.ToString("X2")} bytes of sprite data starting at address I.");
             CheckRegisterBounds(x, y);
 
             byte xPos = (byte)(v[x] % 64);
@@ -650,7 +641,7 @@
                         break;
 
                     bool currentPixel = display[xPos + col, yPos + row];
-                    bool currentSpritePixel = (spriteData >> (7 - col) & 0b1) == 0b1;
+                    bool currentSpritePixel = (spriteData >> (7 - col) & 0x1) == 0x1;
 
                     if (currentPixel && currentSpritePixel)
                     {
@@ -674,7 +665,6 @@
         public void ExecuteFX07(byte x)
         {
             // Store the current value of the delay timer in VX
-            if (debug) Console.WriteLine($"CHIP8: Executing FX07, Storing delay timer in V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Store the current value of the delay timer in VX
@@ -684,7 +674,6 @@
         public void ExecuteFX15(byte x)
         {
             // Set the delay timer to VX
-            if (debug) Console.WriteLine($"CHIP8: Executing FX15, Setting delay timer to V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Set the delay timer to VX
@@ -694,7 +683,6 @@
         public void ExecuteFX18(byte x)
         {
             // Set the sound timer to VX
-            if (debug) Console.WriteLine($"CHIP8: Executing FX18, Setting sound timer to V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Set the sound timer to VX
@@ -704,7 +692,6 @@
         public void ExecuteFX1E(byte x)
         {
             // Add VX to I
-            if (debug) Console.WriteLine($"CHIP8: Executing FX1E, Adding V{x.ToString("X1")} to I.");
             CheckRegisterBounds(x);
 
             // Add VX to I
@@ -714,7 +701,6 @@
         public void ExecuteFX29(byte x)
         {
             // Set I to the location of the sprite for the character in VX.
-            if (debug) Console.WriteLine($"CHIP8: Executing FX29, Setting I to the location of the sprite for V{x.ToString("X1")}.");
             CheckRegisterBounds(x);
 
             // Set I to the location of the sprite for the character in VX
@@ -724,7 +710,6 @@
         public void ExecuteFX33(byte x)
         {
             // Store BCD representation of VX in memory locations I, I+1, and I+2
-            if (debug) Console.WriteLine($"CHIP8: Executing FX33, Storing BCD representation of V{x.ToString("X1")} in memory locations I, I+1, and I+2.");
             CheckRegisterBounds(x);
 
             for (int mem = 0; mem < 3; mem++)
@@ -741,7 +726,6 @@
         public void ExecuteFX55(byte x)
         {
             // Store registers V0 through VX in memory starting at address I
-            if (debug) Console.WriteLine($"CHIP8: Executing FX55, Storing registers V0 through V{x.ToString("X1")} in memory starting at address I.");
             CheckAddressBounds(i);
 
             // Store registers V0 through VX in memory starting at address I
@@ -756,7 +740,6 @@
         public void ExecuteFX65(byte x)
         {
             // Read registers V0 through VX from memory starting at address I
-            if (debug) Console.WriteLine($"CHIP8: Executing FX65, Reading registers V0 through V{x.ToString("X1")} from memory starting at address I.");
             CheckRegisterBounds(x);
 
             // Read registers V0 through VX from memory starting at address I
@@ -770,7 +753,6 @@
 
         public void DisplayScreen()
         {
-            Console.WriteLine("\nCHIP8: Displaying screen.\n");
             for (int row = 0; row < display.GetLength(1); row++)
             {
                 for (int col = 0; col < display.GetLength(0); col++)
@@ -781,12 +763,6 @@
             }
         }
 
-        public Chip8Core(ArgumentService arguments)
-        {
-            debug = arguments.debugMode;
-
-            LoadFont();
-            LoadFile(arguments.filePath);
-        }
+        
     }
 }
