@@ -3,37 +3,26 @@
 
     public class Chip8Core
     {
-        // Sets debug mode
         public bool debug { get; private set; } = false;
 
-        // Data Registers range from V0 to VF
-        // 16 in total
         public byte[] v = new byte[16]; // V0 to VF
 
-        // Address register
-        // Can only be loaded with a 12 bit memory address
         public UInt16 i = 0x000;
 
-        // 4 Kilobytes of ram
         public byte[] memory { get; private set; } = new byte[4096];
 
-        // Black and white
-        // Screen width is 64 height is 32
         public bool[,] display { get; private set; } = new bool[64, 32];
 
-        // Program counter can only access 12 bits
-        // Programs start at 0x200
         public UInt16 pc { get; private set; } = 0x200;
 
-        // Create the stack to store 16 bit addresses
         public Stack<UInt16> stack { get; private set; } = new Stack<UInt16>();
 
-        // Delay timer decrements by 1 60 times per second
         public byte delayTimer { get; private set; } = 0;
 
-        // Sound timer decrements by 1 60 times per second
-        // Plays a beep if greater than 1
         public byte soundTimer { get; private set; } = 0;
+
+        private bool[] keys = new bool[16];
+        private bool[] prevKeys = new bool[16];
 
         /*
          * INITIALIZATION
@@ -42,6 +31,11 @@
         public Chip8Core(ArgumentService arguments)
         {
             debug = arguments.debugMode;
+            for (int key = 0; key < keys.Length; key++)
+            {
+                keys[key] = false;
+                prevKeys[key] = false;
+            }
 
             LoadFont();
             LoadFile(arguments.filePath);
@@ -72,7 +66,7 @@
 
         private void LoadFont()
         {
-            // Write the font to memory addresses starting at 0x00
+            // Write the font to memory addresses, placing it at 0x00
             Array.Copy(Constants.Constants.FONT, 0, memory, 0x00, Constants.Constants.FONT.Length);
         }
 
@@ -105,8 +99,20 @@
                 ErrorService.HandleError(ErrorType.OutOfBounds, $"Address {address.ToString("X4")} is out of bounds.");
         }
 
+        public void CheckEmptyStack()
+        {
+            if (stack.Count == 0)
+                ErrorService.HandleError(ErrorType.EmptyStack, "Stack is empty, cannot return from subroutine.");
+        }
+
+        public void CheckFullStack()
+        {
+            if (stack.Count == 12)
+                ErrorService.HandleError(ErrorType.StackOverflow, "Stack is full, cannot push to stack.");
+        }
+
         /*
-         * CHIP8 INSTRUCTIONS
+         * CHIP8 Functions
          */
 
         public UInt16 FetchOpcode(UInt16 address)
@@ -126,12 +132,21 @@
 
         public void RunChip8()
         {
-            UInt16 opcode = FetchOpcode(pc);
-            // Increment Program Counter
-            pc += 0x2;
+            for (int ins = 0; ins < 11; ins++)
+            {
+                UInt16 opcode = FetchOpcode(pc);
+                // Increment Program Counter
+                pc += 0x2;
 
-            if (debug) Console.WriteLine($"CHIP8: Executing opcode {opcode.ToString("X4")}.");
-            DecodeInstruction(opcode);
+                if (debug) Console.WriteLine($"CHIP8: Executing opcode {opcode.ToString("X4")}.");
+                DecodeInstruction(opcode);
+
+                // If drawing a sprite to the screen
+                if (((opcode >> 12) & 0xF) == 0xD)
+                {
+                    break;
+                }
+            }
         }
 
         public void DecrementTimers()
@@ -141,6 +156,12 @@
 
             if (soundTimer > 0)
                 soundTimer--;
+        }
+
+        public void UpdateKeypad(bool[] keypad)
+        {
+            prevKeys = (bool[])keys.Clone();
+            keys = (bool[])keypad.Clone();
         }
 
         public void DecodeInstruction(UInt16 opcode)
@@ -197,13 +218,11 @@
                 case 0x5:
                     switch (opcode & 0xF)
                     {
-                        // 5XY0
                         case 0x0:
                             // Skip following instruction if VX == VY
                             Execute5XY0(x, y);
                             break;
                         default:
-                            // Invalid opcode
                             InvalidOpcode(opcode);
                             break;
                     }
@@ -267,7 +286,6 @@
                             Execute8XYE(x, y);
                             break;
                         default:
-                            // Invalid opcode
                             InvalidOpcode(opcode);
                             break;
                     }
@@ -281,7 +299,6 @@
                             Execute9XY0(x, y);
                             break;
                         default:
-                            // Invalid opcode
                             InvalidOpcode(opcode);
                             break;
                     }
@@ -300,7 +317,6 @@
                     break;
                 case 0xD:
                     // Draw sprite to screen.
-                    // Set VF to 1 if pixel is set to off
                     ExecuteDXYN(x, y, (byte)(opcode & 0xF));
                     break;
                 case 0xE:
@@ -308,12 +324,13 @@
                     {
                         case 0x9E:
                             // Skip next instruction if key with the value of VX is pressed
+                            ExecuteEX9E(x);
                             break;
                         case 0xA1:
                             // Skip next instruction if key with the value of VX is not pressed
+                            ExecuteEXA1(x);
                             break;
                         default:
-                            // Invalid opcode
                             InvalidOpcode(opcode);
                             break;
                     }
@@ -326,7 +343,8 @@
                             ExecuteFX07(x);
                             break;
                         case 0x0A:
-                            // Wait for a key press and store the value of the key in VX
+                            // Wait for a key release and store the value of the key in VX
+                            ExecuteFX0A(x);
                             break;
                         case 0x15:
                             // Set the delay timer to VX
@@ -357,7 +375,6 @@
                             ExecuteFX65(x);
                             break;
                         default:
-                            // Invalid opcode
                             InvalidOpcode(opcode);
                             break;
                     }
@@ -367,7 +384,6 @@
 
         public void Execute0NNN(UInt16 address)
         {
-            // Execute instruction at NNN
             // Get opcode from memory
             UInt16 opcode = FetchOpcode(address);
 
@@ -377,7 +393,6 @@
 
         public void Execute00E0()
         {
-            // Clear the screen
             for (int row = 0; row < display.GetLength(0); row++)
             {
                 for (int col = 0; col < display.GetLength(1); col++)
@@ -389,10 +404,7 @@
 
         public void Execute00EE()
         {
-            // Return from a subroutine
-            // Make sure stack is not empty
-            if (stack.Count == 0)
-                ErrorService.HandleError(ErrorType.EmptyStack, "Stack is empty, cannot return from subroutine.");
+            CheckEmptyStack();
 
             // Pop the top address from the stack
             UInt16 address = stack.Pop();
@@ -403,21 +415,20 @@
 
         public void Execute1NNN(UInt16 address)
         {
-            // Jump to NNN
             // Set program counter to address
             pc = address;
         }
 
         public void Execute2NNN(UInt16 address)
         {
-            // Execute subroutine at NNN
+            CheckFullStack();
+
             stack.Push(pc);
             pc = address;
         }
 
         public void Execute3XNN(byte x, byte nn)
         {
-            // Skip next instruction if VX == NN
             CheckRegisterBounds(x);
 
             if (v[x] == nn)
@@ -429,7 +440,6 @@
 
         public void Execute4XNN(byte x, byte nn)
         {
-            // Skip next instruction if VX != NN
             CheckRegisterBounds(x);
 
             if (v[x] != nn)
@@ -441,7 +451,6 @@
 
         public void Execute5XY0(byte x, byte y)
         {
-            // Skip next instruction if VX == VY
             CheckRegisterBounds(x, y);
 
             if (v[x] == v[y])
@@ -453,37 +462,29 @@
 
         public void Execute6XNN(byte x, byte nn)
         {
-            // Store NN in VX
             CheckRegisterBounds(x);
 
-            // Store nn in vx
             v[x] = nn;
         }
 
         public void Execute7XNN(byte x, byte nn)
         {
-            // Add NN to VX
             CheckRegisterBounds(x);
 
-            // Add nn to vx
             v[x] += nn;
         }
 
         public void Execute8XY0(byte x, byte y)
         {
-            // Set VX to VY
             CheckRegisterBounds(x, y);
 
-            // Set vx to vy
             v[x] = v[y];
         }
 
         public void Execute8XY1(byte x, byte y)
         {
-            // Set VX to bitwise OR of VX and VY
             CheckRegisterBounds(x, y);
 
-            // Set vx to vx | vy
             v[x] = (byte)(v[x] | v[y]);
 
             // Quirk Reset VF
@@ -492,10 +493,8 @@
 
         public void Execute8XY2(byte x, byte y)
         {
-            // Set VX to bitwise AND of VX and VY
             CheckRegisterBounds(x, y);
 
-            // Set vx to vx & vy
             v[x] = (byte)(v[x] & v[y]);
 
             // Quirk Reset VF
@@ -504,10 +503,8 @@
 
         public void Execute8XY3(byte x, byte y)
         {
-            // Set VX to bitwise XOR of VX and VY
             CheckRegisterBounds(x, y);
 
-            // Set vx to vx ^ vy
             v[x] = (byte)(v[x] ^ v[y]);
 
             // Quirk Reset VF
@@ -518,10 +515,8 @@
         {
             CheckRegisterBounds(x, y);
 
-            // Add VY to VX
             UInt16 sum = (UInt16)(v[x] + v[y]);
 
-            // Set VX to the sum
             v[x] = (byte)(sum & 0xFF);
 
             // Set VF to 1 if there is a carry else 0
@@ -530,13 +525,11 @@
 
         public void Execute8XY5(byte x, byte y)
         {
-            // Subtract VY from VX
             CheckRegisterBounds(x, y);
 
             // Set borrow
             byte borrow = v[x] >= v[y] ? (byte)0x1 : (byte)0x0;
 
-            // Subtract VY from VX
             v[x] -= v[y];
 
             // Set VF to 0 if there is a borrow else 1
@@ -545,13 +538,14 @@
 
         public void Execute8XY6(byte x, byte y)
         {
-            // Set VX to VY and shift VX one bit to the right. Set VF to the value of the least significant bit of VX before the shift.
             CheckRegisterBounds(x, y);
+
+            // QUIRK
+            v[x] = v[y];
 
             // Set least significant bit
             byte leastSignificant = (byte)(v[x] & 0x1);
 
-            // Shift VX one bit to the right
             v[x] = (byte)(v[x] >> 1);
 
             // Set VF to the value of the least significant bit of VX before the shift
@@ -560,13 +554,11 @@
 
         public void Execute8XY7(byte x, byte y)
         {
-            // Set VX to the result of subtracting VX from VY. VF is set to 0 if there is a borrow, and 1 if there is not.
             CheckRegisterBounds(x, y);
 
             // Set borrow
             byte borrow = v[y] >= v[x] ? (byte)0x1 : (byte)0x0;
 
-            // Subtract VX from VY
             v[x] = (byte)(v[y] - v[x]);
 
             // Set VF to 0 if there is a borrow else 1
@@ -575,13 +567,14 @@
 
         public void Execute8XYE(byte x, byte y)
         {
-            // Set VX to VY and shift VX one bit to the left. Set VF to the value of the most significant bit of VX before the shift.
             CheckRegisterBounds(x, y);
+
+            // QUIRK
+            v[x] = v[y];
 
             // Set most significant bit
             byte mostSignificant = (byte)((v[x] >> 7) & 0x1);
 
-            // Shift VX one bit to the left
             v[x] = (byte)(v[x] << 1);
 
             // Set VF to the value of the most significant bit of VX before the shift
@@ -590,7 +583,6 @@
 
         public void Execute9XY0(byte x, byte y)
         {
-            // Skip next instruction if VX != VY
             CheckRegisterBounds(x, y);
 
             if (v[x] != v[y])
@@ -602,25 +594,19 @@
 
         public void ExecuteANNN(UInt16 address)
         {
-            // Set I to NNN
-            // Set I to address
             i = address;
         }
 
         public void ExecuteBNNN(UInt16 address)
         {
-            // Jump to NNN + V0
-            // Set program counter to address + V0
             UInt16 jumpAddress = (UInt16)(address + v[0]);
             pc = jumpAddress;
         }
 
         public void ExecuteCXNN(byte x, byte nn)
         {
-            // Set VX to a random number AND NN
             CheckRegisterBounds(x);
 
-            // Set vx to a random number AND nn
             Random rand = new Random();
             v[x] = (byte)(rand.Next(0x00, 0xFF) & nn);
         }
@@ -632,7 +618,6 @@
             byte xPos = (byte)(v[x] % 64);
             byte yPos = (byte)(v[y] % 32);
 
-            // Set VF to 0
             v[0xF] = 0;
 
             for (int row = 0; row < n; row++)
@@ -670,46 +655,73 @@
             }
         }
 
+        public void ExecuteEX9E(byte x)
+        {
+            CheckRegisterBounds(x);
+
+            byte lowerNibble = (byte)(v[x] & 0xF);
+
+            if (keys[lowerNibble])
+                pc += 0x2;  // Skip instruction
+        }
+
+        public void ExecuteEXA1(byte x)
+        {
+            CheckRegisterBounds(x);
+
+            byte lowerNibble = (byte)(v[x] & 0xF);
+
+            if (!keys[lowerNibble])
+                pc += 0x2;  // Skip instruction
+        }
 
         public void ExecuteFX07(byte x)
         {
-            // Store the current value of the delay timer in VX
             CheckRegisterBounds(x);
 
-            // Store the current value of the delay timer in VX
             v[x] = delayTimer;
+        }
+
+        public void ExecuteFX0A(byte x)
+        {
+            CheckRegisterBounds(x);
+
+            for (int key = 0; key < keys.Length; key++)
+            {
+                // if a key is released
+                if (prevKeys[key] && !keys[key])
+                {
+                    v[x] = (byte)key;
+                    return;
+                }
+            }
+
+            pc -= 0x2;  // If no keys released decrement pc
         }
 
         public void ExecuteFX15(byte x)
         {
-            // Set the delay timer to VX
             CheckRegisterBounds(x);
 
-            // Set the delay timer to VX
             delayTimer = v[x];
         }
 
         public void ExecuteFX18(byte x)
         {
-            // Set the sound timer to VX
             CheckRegisterBounds(x);
 
-            // Set the sound timer to VX
             soundTimer = v[x];
         }
 
         public void ExecuteFX1E(byte x)
         {
-            // Add VX to I
             CheckRegisterBounds(x);
 
-            // Add VX to I
             i += v[x];
         }
 
         public void ExecuteFX29(byte x)
         {
-            // Set I to the location of the sprite for the character in VX.
             CheckRegisterBounds(x);
 
             // Set I to the location of the sprite for the character in VX
@@ -718,7 +730,6 @@
 
         public void ExecuteFX33(byte x)
         {
-            // Store BCD representation of VX in memory locations I, I+1, and I+2
             CheckRegisterBounds(x);
 
             for (int mem = 0; mem < 3; mem++)
@@ -734,7 +745,6 @@
 
         public void ExecuteFX55(byte x)
         {
-            // Store registers V0 through VX in memory starting at address I
             CheckAddressBounds(i);
 
             // Store registers V0 through VX in memory starting at address I
@@ -744,11 +754,12 @@
 
                 memory[i + reg] = v[reg];
             }
+
+            i += (ushort)(x + 1);
         }
 
         public void ExecuteFX65(byte x)
         {
-            // Read registers V0 through VX from memory starting at address I
             CheckRegisterBounds(x);
 
             // Read registers V0 through VX from memory starting at address I
@@ -758,6 +769,8 @@
 
                 v[reg] = memory[i + reg];
             }
+
+            i += (ushort)(x + 1);
         }
 
         public void DisplayScreen()
@@ -771,7 +784,5 @@
                 Console.WriteLine();
             }
         }
-
-        
     }
 }

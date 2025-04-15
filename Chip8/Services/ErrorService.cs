@@ -11,11 +11,12 @@ namespace Chip8.Services
         OutOfBounds,
         InvalidOpcode,
         EmptyStack,
+        StackOverflow,
         MissingFile,
         MissingArguments,
         UnexpectedError,
         InvalidRegister,
-        InvalidArgument
+        InvalidArgument,
     }
 
     public static class ErrorService
