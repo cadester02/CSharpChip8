@@ -5,10 +5,10 @@
     /// </summary>
     public class ArgumentService
     {
-        private string[] args = Array.Empty<string>();
-        private string filePath = string.Empty;
-        private readonly bool debugMode = false;
-        private readonly int? scale = null;
+        private readonly string[] Args = Array.Empty<string>();
+        public string FilePath { get; private set; } = string.Empty;
+        public bool DebugMode { get; private set; } = false;
+        public int? Scale { get; private set; } = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArgumentService"/> class.
@@ -17,7 +17,7 @@
         /// <param name="args">The arguments passed in from main.</param>
         public ArgumentService(string[] args)
         {
-            this.args = args;
+            this.Args = args;
 
             if (args.Length == 0)
             {
@@ -31,7 +31,7 @@
                     // Enable debug
                     case ("-d"):
                     case ("--debug"):
-                        debugMode = true;
+                        DebugMode = true;
                         break;
 
                     // File
@@ -42,7 +42,7 @@
                             ErrorService.HandleError(ErrorType.MissingArguments, "No file provided after -f or --file.");
                         }
 
-                        filePath = args[i + 1];
+                        FilePath = args[i + 1];
                         i++;
                         break;
 
@@ -59,7 +59,7 @@
                             ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be an integer.");
                         }
 
-                        scale = parsedScale;
+                        Scale = parsedScale;
                         i++;
                         break;
 
@@ -72,19 +72,10 @@
                 }
             }
 
-            if (String.IsNullOrEmpty(filePath))
+            if (String.IsNullOrEmpty(FilePath))
             {
                 ErrorService.HandleError(ErrorType.MissingFile, "No file provided, use -f or --file to specify a file.");
             }
-        }
-
-        /// <summary>
-        /// Returns the args.
-        /// </summary>
-        /// <returns>The args saved in the service.</returns>
-        public string[] GetArgs()
-        {
-            return args;
         }
 
         /// <summary>

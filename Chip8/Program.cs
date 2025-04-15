@@ -8,18 +8,18 @@ class Program
         int _scale = Constants.DEFAULT_SCALE; // Scale factor for the window size
 
         // Stopwatch for frame timing
-        Stopwatch stopwatch = new Stopwatch();
+        Stopwatch stopwatch = new();
 
         // Arguments and Chip8 core initialization
-        ArgumentService arguments = new ArgumentService(args);
-        Chip8Core chip8 = new Chip8Core(arguments);
-        if (arguments.scale.HasValue)
-        {
-            _scale = arguments.scale.Value;
-        }
+        ArgumentService arguments = new(args);
+        Chip8Core chip8 = new(arguments);
+
+        // Set screen scale
+        if (arguments.Scale.HasValue)
+            _scale = arguments.Scale.Value;
 
         // SDL initialization for video
-        SDLService sdlService = new SDLService(_scale);
+        SDLService sdlService = new(_scale);
         sdlService.StartSDL();
 
         while (true)

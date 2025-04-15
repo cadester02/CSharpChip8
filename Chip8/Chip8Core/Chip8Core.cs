@@ -30,7 +30,7 @@
 
         public Chip8Core(ArgumentService arguments)
         {
-            debug = arguments.debugMode;
+            debug = arguments.DebugMode;
             for (int key = 0; key < keys.Length; key++)
             {
                 keys[key] = false;
@@ -38,7 +38,7 @@
             }
 
             LoadFont();
-            LoadFile(arguments.filePath);
+            LoadFile(arguments.FilePath);
         }
 
         /*

@@ -9,7 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="SDL\" />
+    <Compile Remove="SDL\**" />
+    <EmbeddedResource Remove="SDL\**" />
+    <None Remove="SDL\**" />
   </ItemGroup>
 
   <ItemGroup>
