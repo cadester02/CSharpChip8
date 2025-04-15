@@ -13,6 +13,7 @@ namespace Chip8.Constants
 
         public const int SCREEN_WIDTH = 64; // Chip 8 screen width
         public const int SCREEN_HEIGHT = 32; // Chip 8 screen height
+        public const int SCREEN_AREA = SCREEN_WIDTH * SCREEN_HEIGHT;
         public const int DEFAULT_SCALE = 10; // Default scale factor for the window
 
         // Chip 8 font

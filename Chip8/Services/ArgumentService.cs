@@ -59,6 +59,9 @@
                             ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be an integer.");
                         }
 
+                        if (parsedScale <= 0)
+                            ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be greater than 0.");
+
                         Scale = parsedScale;
                         i++;
                         break;
