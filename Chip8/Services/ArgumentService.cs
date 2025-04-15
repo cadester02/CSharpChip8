@@ -5,10 +5,10 @@
     /// </summary>
     public class ArgumentService
     {
-        public string[] args { get; private set; } = Array.Empty<string>();
-        public string filePath { get; private set; } = string.Empty;
-        public bool debugMode { get; private set; } = false;
-        public int? scale { get; private set; } = null;
+        private string[] args = Array.Empty<string>();
+        private string filePath = string.Empty;
+        private readonly bool debugMode = false;
+        private readonly int? scale = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArgumentService"/> class.
@@ -78,6 +78,18 @@
             }
         }
 
+        /// <summary>
+        /// Returns the args.
+        /// </summary>
+        /// <returns>The args saved in the service.</returns>
+        public string[] GetArgs()
+        {
+            return args;
+        }
+
+        /// <summary>
+        /// Prints a list of commands to the screen.
+        /// </summary>
         public void PrintHelp()
         {
             Console.WriteLine("Chip8 Emulator");
