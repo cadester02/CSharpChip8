@@ -11,7 +11,7 @@
         public int? Scale { get; private set; } = null;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArgumentService"/> class.
+        /// Constructor for the class.
         /// Handles the command line arguments.
         /// </summary>
         /// <param name="args">The arguments passed in from main.</param>
