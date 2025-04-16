@@ -20,9 +20,7 @@
             this.Args = args;
 
             if (args.Length == 0)
-            {
                 ErrorService.HandleError(ErrorType.MissingArguments, "No arguments provided, use -h or --help for a list of options.");
-            }
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -38,11 +36,13 @@
                     case ("-f"):
                     case ("--file"):
                         if ((i + 1) >= args.Length)
-                        {
                             ErrorService.HandleError(ErrorType.MissingArguments, "No file provided after -f or --file.");
-                        }
 
                         FilePath = args[i + 1];
+
+                        if (!FilePath.Contains(".ch8"))
+                            ErrorService.HandleError(ErrorType.InvalidArgument, "File must be a Chip8 rom file. File is not of type .ch8");
+
                         i++;
                         break;
 
@@ -50,14 +50,10 @@
                     case ("-s"):
                     case ("--scale"):
                         if ((i + 1) >= args.Length)
-                        {
                             ErrorService.HandleError(ErrorType.MissingArguments, "No scale provided after -s or --scale.");
-                        }
 
                         if (!int.TryParse(args[i + 1], out int parsedScale))
-                        {
                             ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be an integer.");
-                        }
 
                         if (parsedScale <= 0)
                             ErrorService.HandleError(ErrorType.InvalidArgument, "Invalid scale provided, must be greater than 0.");
@@ -76,9 +72,7 @@
             }
 
             if (String.IsNullOrEmpty(FilePath))
-            {
                 ErrorService.HandleError(ErrorType.MissingFile, "No file provided, use -f or --file to specify a file.");
-            }
         }
 
         /// <summary>

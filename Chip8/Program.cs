@@ -5,8 +5,6 @@ class Program
 {
     unsafe static void Main(string[] args)
     {
-        int _scale = Constants.DEFAULT_SCALE; // Scale factor for the window size
-
         // Stopwatch for frame timing
         Stopwatch stopwatch = new();
 
@@ -14,25 +12,18 @@ class Program
         ArgumentService arguments = new(args);
         Chip8Core chip8 = new(arguments);
 
-        // Set screen scale
-        if (arguments.Scale.HasValue)
-            _scale = arguments.Scale.Value;
-
         // SDL initialization for video
-        SDLService sdlService = new(_scale);
+        SDLService sdlService = new(arguments.Scale.HasValue ? arguments.Scale.Value : Constants.DEFAULT_SCALE);
         sdlService.StartSDL();
 
         while (true)
         {
             stopwatch.Restart();
 
-            // Decrement timers
-            chip8.DecrementTimers();
+            // Update the keypad state and run instruction loop
+            chip8.RunChip8(sdlService.HandleKeys());
 
-            // Update the keypad state
-            chip8.UpdateKeypad(sdlService.HandleKeys());
-
-            chip8.RunChip8();
+            // Render frame
             sdlService.RenderScreen(chip8.display);
 
             // Wait for next frame
@@ -42,7 +33,7 @@ class Program
 
             if (sleepTime > 0)
             {
-                System.Threading.Thread.Sleep(sleepTime);
+                Thread.Sleep(sleepTime);
             }
         }
     }

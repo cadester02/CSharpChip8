@@ -16,6 +16,8 @@ namespace Chip8.Constants
         public const int SCREEN_AREA = SCREEN_WIDTH * SCREEN_HEIGHT;
         public const int DEFAULT_SCALE = 10; // Default scale factor for the window
 
+        public const int STACK_HEIGHT = 12;
+
         // Chip 8 font
         public static readonly byte[] FONT = new byte[]
         {
