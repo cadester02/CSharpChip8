@@ -144,9 +144,6 @@
         /// <returns>The opcode that was fetched.</returns>
         public UInt16 FetchOpcode(UInt16 address)
         {
-            //CheckAddressBounds(address);
-            //CheckAddressBounds((UInt16)(address + 1));
-
             // Get instruction
             byte highByte = memory[ValidateAddress(address)];
             byte lowByte = memory[ValidateAddress((UInt16)(address + 1))];
