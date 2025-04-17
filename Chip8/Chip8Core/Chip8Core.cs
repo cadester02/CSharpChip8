@@ -108,13 +108,13 @@
         }
 
         /// <summary>
-        /// Checks a memory address to see if it is within the memory bounds.
+        /// Returns a valid address by masking the given address with 0xFFF.
         /// </summary>
-        /// <param name="address">The address being checked.</param>
-        public void CheckAddressBounds(UInt16 address)
+        /// <param name="address">The supplied address.</param>
+        /// <returns>A valid 12bit address.</returns>
+        private UInt16 ValidateAddress(UInt16 address)
         {
-            if (address >= memory.Length)
-                ErrorService.HandleError(ErrorType.OutOfBounds, $"Address {address.ToString("X4")} is out of bounds.");
+            return (UInt16)(address & 0xFFF);
         }
 
         /// <summary>
@@ -144,12 +144,12 @@
         /// <returns>The opcode that was fetched.</returns>
         public UInt16 FetchOpcode(UInt16 address)
         {
-            CheckAddressBounds(address);
-            CheckAddressBounds((UInt16)(address + 1));
+            //CheckAddressBounds(address);
+            //CheckAddressBounds((UInt16)(address + 1));
 
             // Get instruction
-            byte highByte = memory[address];
-            byte lowByte = memory[address + 1];
+            byte highByte = memory[ValidateAddress(address)];
+            byte lowByte = memory[ValidateAddress((UInt16)(address + 1))];
 
             // Create the opcode.
             UInt16 opcode = (UInt16)((highByte << 8) | lowByte);
@@ -774,10 +774,8 @@
                 if ((yPos + row) >= display.GetLength(1))
                     break;
 
-                CheckAddressBounds((UInt16)(i + row));
-
                 // Pull sprite data
-                byte spriteData = memory[i + row];
+                byte spriteData = memory[ValidateAddress((UInt16)(i + row))];
 
                 // Column is 8 pixels wide
                 for (int col = 0; col < 8; col++)
@@ -914,7 +912,7 @@
             CheckRegisterBounds(x);
 
             // Set I to the location of the sprite for the character in VX
-            i = (UInt16)(v[x] * 5);
+            i = (UInt16)((v[x] & 0xF) * 5);
         }
 
         /// <summary>
@@ -925,15 +923,10 @@
         {
             CheckRegisterBounds(x);
 
-            for (int mem = 0; mem < 3; mem++)
-            {
-                CheckAddressBounds((UInt16)(i + mem));
-            }
-
             // Store BCD representation of VX in memory locations I, I+1, and I+2
-            memory[i] = (byte)(v[x] / 100); // Get hundreths position. 255 / 100 = 2
-            memory[i + 1] = (byte)((v[x] / 10) % 10);   // Get tenths position. 255 / 10 = 25 % 10 = 5
-            memory[i + 2] = (byte)(v[x] % 10);  // Get ones position. 255 % 10 = 5
+            memory[ValidateAddress(i)] = (byte)(v[x] / 100); // Get hundreths position. 255 / 100 = 2
+            memory[ValidateAddress((UInt16)(i + 1))] = (byte)((v[x] / 10) % 10);   // Get tenths position. 255 / 10 = 25 % 10 = 5
+            memory[ValidateAddress((UInt16)(i + 2))] = (byte)(v[x] % 10);  // Get ones position. 255 % 10 = 5
         }
 
         /// <summary>
@@ -943,14 +936,10 @@
         /// <param name="x">The register VX.</param>
         public void ExecuteFX55(byte x)
         {
-            CheckAddressBounds(i);
-
             // Store registers V0 through VX in memory starting at address I
             for (byte reg = 0; reg <= x; reg++)
             {
-                CheckAddressBounds((UInt16)(i + reg));
-
-                memory[i + reg] = v[reg];
+                memory[ValidateAddress((UInt16)(i + reg))] = v[reg];
             }
 
             i += (ushort)(x + 1);
@@ -962,14 +951,12 @@
         /// <param name="x">The register VX.</param>
         public void ExecuteFX65(byte x)
         {
-            CheckRegisterBounds(x);
+            //CheckRegisterBounds(x);
 
             // Read registers V0 through VX from memory starting at address I
             for (byte reg = 0; reg <= x; reg++)
             {
-                CheckAddressBounds((UInt16)(i + reg));
-
-                v[reg] = memory[i + reg];
+                v[reg] = memory[ValidateAddress((UInt16)(i + reg))];
             }
 
             i += (ushort)(x + 1);
