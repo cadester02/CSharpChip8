@@ -9,6 +9,7 @@
         public string FilePath { get; private set; } = string.Empty;
         public bool DebugMode { get; private set; } = false;
         public int? Scale { get; private set; } = null;
+        public bool UseAudio { get; private set; } = true;
 
         /// <summary>
         /// Constructor for the class.
@@ -62,6 +63,12 @@
                         i++;
                         break;
 
+                    // Audio
+                    case ("-a"):
+                    case ("--audio"):
+                        UseAudio = false;
+                        break;
+
                     // Help
                     case ("-h"):
                     case ("--help"):
@@ -86,6 +93,7 @@
             Console.WriteLine("\t-d, --debug\tEnable debug mode");
             Console.WriteLine("\t-f, --file\tSpecify the file to load");
             Console.WriteLine("\t-s, --scale\tSpecify the scale of the window (default: 10)");
+            Console.WriteLine("\t-a, --audio\tDisables audio");
             Console.WriteLine("\t-h, --help \tShow this help message");
         }
     }

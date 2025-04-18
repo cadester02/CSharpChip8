@@ -79,7 +79,7 @@
         /// Called when an invalid opcode is used.
         /// </summary>
         /// <param name="opcode">The opcode that caused the error.</param>
-        public void InvalidOpcode(UInt16 opcode)
+        private void InvalidOpcode(UInt16 opcode)
         {
             ErrorService.HandleError(ErrorType.InvalidOpcode, $"Invalid opcode {opcode.ToString("X4")}.");
         }
@@ -88,7 +88,7 @@
         /// Checks the register to make sure it is within bounds.
         /// </summary>
         /// <param name="x">The value of the register being checked.</param>
-        public void CheckRegisterBounds(byte x)
+        private void CheckRegisterBounds(byte x)
         {
             if (x > 0xF)
                 ErrorService.HandleError(ErrorType.InvalidRegister, $"Invalid register V{x.ToString("X1")}.");
@@ -99,7 +99,7 @@
         /// </summary>
         /// <param name="x">The x register being checked.</param>
         /// <param name="y">The y register being checked.</param>
-        public void CheckRegisterBounds(byte x, byte y)
+        private void CheckRegisterBounds(byte x, byte y)
         {
             if (x > 0xF)
                 ErrorService.HandleError(ErrorType.InvalidRegister, $"Invalid register V{x.ToString("X1")}.");
@@ -121,7 +121,7 @@
         /// Checks the stack to see if it is empty.
         /// Called while returning from subroutine.
         /// </summary>
-        public void CheckEmptyStack()
+        private void CheckEmptyStack()
         {
             if (stack.Count == 0)
                 ErrorService.HandleError(ErrorType.EmptyStack, "Stack is empty, cannot return from subroutine.");
@@ -131,7 +131,7 @@
         /// Checks the stack to see if it is full.
         /// Called while going to a subroutine.
         /// </summary>
-        public void CheckFullStack()
+        private void CheckFullStack()
         {
             if (stack.Count == Constants.Constants.STACK_HEIGHT)
                 ErrorService.HandleError(ErrorType.StackOverflow, "Stack is full, cannot push to stack.");
@@ -142,7 +142,7 @@
         /// </summary>
         /// <param name="address">The address where the opcode is being fetched.</param>
         /// <returns>The opcode that was fetched.</returns>
-        public UInt16 FetchOpcode(UInt16 address)
+        private UInt16 FetchOpcode(UInt16 address)
         {
             // Get instruction
             byte highByte = memory[ValidateAddress(address)];
@@ -196,7 +196,7 @@
         /// </summary>
         /// <param name="opcode">The opcode to be decoded and executed.</param>
         /// <param name="keypad">The current keys pressed and released.</param>
-        public void DecodeInstruction(UInt16 opcode, bool[] keypad)
+        private void DecodeInstruction(UInt16 opcode, bool[] keypad)
         {
             // Variables required for instructions
             byte instructionNibble = (byte)((opcode >> 12) & 0xF);
@@ -416,7 +416,7 @@
         /// </summary>
         /// <param name="address">The address to execute.</param>
         /// <param name="keypad">The current keys pressed.</param>
-        public void Execute0NNN(UInt16 address, bool[] keypad)
+        private void Execute0NNN(UInt16 address, bool[] keypad)
         {
             // Get opcode from memory
             UInt16 opcode = FetchOpcode(address);
@@ -428,7 +428,7 @@
         /// <summary>
         /// Clears the screen.
         /// </summary>
-        public void Execute00E0()
+        private void Execute00E0()
         {
             for (int row = 0; row < display.GetLength(0); row++)
             {
@@ -442,7 +442,7 @@
         /// <summary>
         /// Returns from the subroutine.
         /// </summary>
-        public void Execute00EE()
+        private void Execute00EE()
         {
             CheckEmptyStack();
 
@@ -457,7 +457,7 @@
         /// Jumps to the address given.
         /// </summary>
         /// <param name="address">The address to jump to.</param>
-        public void Execute1NNN(UInt16 address)
+        private void Execute1NNN(UInt16 address)
         {
             // Set program counter to address
             pc = address;
@@ -467,7 +467,7 @@
         /// Go to subroutine at the given address.
         /// </summary>
         /// <param name="address">The address of the subroutine.</param>
-        public void Execute2NNN(UInt16 address)
+        private void Execute2NNN(UInt16 address)
         {
             CheckFullStack();
 
@@ -480,7 +480,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="nn">The one byte number NN.</param>
-        public void Execute3XNN(byte x, byte nn)
+        private void Execute3XNN(byte x, byte nn)
         {
             CheckRegisterBounds(x);
 
@@ -496,7 +496,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="nn">The one byte number NN.</param>
-        public void Execute4XNN(byte x, byte nn)
+        private void Execute4XNN(byte x, byte nn)
         {
             CheckRegisterBounds(x);
 
@@ -512,7 +512,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute5XY0(byte x, byte y)
+        private void Execute5XY0(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -528,7 +528,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="nn">The one byte number NN.</param>
-        public void Execute6XNN(byte x, byte nn)
+        private void Execute6XNN(byte x, byte nn)
         {
             CheckRegisterBounds(x);
 
@@ -540,7 +540,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="nn">The one byte number NN.</param>
-        public void Execute7XNN(byte x, byte nn)
+        private void Execute7XNN(byte x, byte nn)
         {
             CheckRegisterBounds(x);
 
@@ -552,7 +552,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY0(byte x, byte y)
+        private void Execute8XY0(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -564,7 +564,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY1(byte x, byte y)
+        private void Execute8XY1(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -579,7 +579,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY2(byte x, byte y)
+        private void Execute8XY2(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -594,7 +594,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY3(byte x, byte y)
+        private void Execute8XY3(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -609,7 +609,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY4(byte x, byte y)
+        private void Execute8XY4(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -626,7 +626,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY5(byte x, byte y)
+        private void Execute8XY5(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -644,7 +644,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY6(byte x, byte y)
+        private void Execute8XY6(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -665,7 +665,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XY7(byte x, byte y)
+        private void Execute8XY7(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -683,7 +683,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute8XYE(byte x, byte y)
+        private void Execute8XYE(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -704,7 +704,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VY.</param>
-        public void Execute9XY0(byte x, byte y)
+        private void Execute9XY0(byte x, byte y)
         {
             CheckRegisterBounds(x, y);
 
@@ -719,7 +719,7 @@
         /// Set I to NNN.
         /// </summary>
         /// <param name="address">The memory address NNN.</param>
-        public void ExecuteANNN(UInt16 address)
+        private void ExecuteANNN(UInt16 address)
         {
             i = address;
         }
@@ -728,7 +728,7 @@
         /// Jump to address NNN + V0.
         /// </summary>
         /// <param name="address">The memory address NNN.</param>
-        public void ExecuteBNNN(UInt16 address)
+        private void ExecuteBNNN(UInt16 address)
         {
             UInt16 jumpAddress = (UInt16)(address + v[0]);
             pc = jumpAddress;
@@ -739,7 +739,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="nn">The one byte number NN.</param>
-        public void ExecuteCXNN(byte x, byte nn)
+        private void ExecuteCXNN(byte x, byte nn)
         {
             CheckRegisterBounds(x);
 
@@ -753,7 +753,7 @@
         /// <param name="x">The register VX.</param>
         /// <param name="y">The register VX.</param>
         /// <param name="n">The nibble value N.</param>
-        public void ExecuteDXYN(byte x, byte y, byte n)
+        private void ExecuteDXYN(byte x, byte y, byte n)
         {
             CheckRegisterBounds(x, y);
 
@@ -808,7 +808,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="keypad">The keypad input data.</param>
-        public void ExecuteEX9E(byte x, bool[] keypad)
+        private void ExecuteEX9E(byte x, bool[] keypad)
         {
             CheckRegisterBounds(x);
 
@@ -823,7 +823,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="keypad">The keypad input data.</param>
-        public void ExecuteEXA1(byte x, bool[] keypad)
+        private void ExecuteEXA1(byte x, bool[] keypad)
         {
             CheckRegisterBounds(x);
 
@@ -837,7 +837,7 @@
         /// Set VX to the delay timer.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX07(byte x)
+        private void ExecuteFX07(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -850,7 +850,7 @@
         /// </summary>
         /// <param name="x">The register VX.</param>
         /// <param name="keypad">The keypad input data.</param>
-        public void ExecuteFX0A(byte x, bool[] keypad)
+        private void ExecuteFX0A(byte x, bool[] keypad)
         {
             CheckRegisterBounds(x);
 
@@ -871,7 +871,7 @@
         /// Set the delay timer to VX.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX15(byte x)
+        private void ExecuteFX15(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -882,7 +882,7 @@
         /// Set the sound timer to VX.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX18(byte x)
+        private void ExecuteFX18(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -893,7 +893,7 @@
         /// Add VX to I.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX1E(byte x)
+        private void ExecuteFX1E(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -904,7 +904,7 @@
         /// Set I to the 5 line high hex sprite at the lowest nibble in VX.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX29(byte x)
+        private void ExecuteFX29(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -916,7 +916,7 @@
         /// Write the BCD value of VX to the addresses of I, I+1, I+2.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX33(byte x)
+        private void ExecuteFX33(byte x)
         {
             CheckRegisterBounds(x);
 
@@ -931,7 +931,7 @@
         /// I is incremented by X + 1.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX55(byte x)
+        private void ExecuteFX55(byte x)
         {
             // Store registers V0 through VX in memory starting at address I
             for (byte reg = 0; reg <= x; reg++)
@@ -946,7 +946,7 @@
         /// Set V0 to VX to the values at the addresses obtained by incrementing I.
         /// </summary>
         /// <param name="x">The register VX.</param>
-        public void ExecuteFX65(byte x)
+        private void ExecuteFX65(byte x)
         {
             //CheckRegisterBounds(x);
 

@@ -16,6 +16,9 @@ class Program
         SDLService sdlService = new(arguments.Scale.HasValue ? arguments.Scale.Value : Constants.DEFAULT_SCALE);
         sdlService.StartSDL();
 
+        // Audio initialization
+        AudioService audioService = new();
+
         while (true)
         {
             stopwatch.Restart();
@@ -26,8 +29,14 @@ class Program
             // Render frame
             sdlService.RenderScreen(chip8.display);
 
-            // Wait for next frame
-            stopwatch.Stop();
+            // Play audio
+            if (chip8.soundTimer > 0 && arguments.UseAudio)
+                audioService.PlayAudio();
+            else
+                audioService.StopAudio();
+
+                // Wait for next frame
+                stopwatch.Stop();
             double elapsed = stopwatch.Elapsed.TotalMilliseconds;
             int sleepTime = (int)(Constants.FRAME_TIME - elapsed);
 
