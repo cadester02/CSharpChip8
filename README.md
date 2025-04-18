@@ -6,10 +6,10 @@ Use the argument -h for a list of arguments that can be supplied to the emulator
 
 # Controls
 
-1 - 1&ensp;2 - 2&ensp;3 - 3&ensp;4 - C<br />
-Q - 4&ensp;W - 5&ensp;E - 6&ensp;R - D<br />
-A - 7&ensp;S - 8&ensp;D - 9&ensp;F - E<br />
-Z - A&ensp;X - 0&ensp;C - B&ensp;V - F<br />
+1 - 1&ensp;&ensp;2 - 2&ensp;&ensp;3 - 3&ensp;&ensp;4 - C<br />
+Q - 4&ensp;&ensp;W - 5&ensp;&ensp;E - 6&ensp;&ensp;R - D<br />
+A - 7&ensp;&ensp;S - 8&ensp;&ensp;D - 9&ensp;&ensp;F - E<br />
+Z - A&ensp;&ensp;X - 0&ensp;&ensp;C - B&ensp;&ensp;V - F<br />
 
 # Libraries
 
