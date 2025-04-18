@@ -6,10 +6,10 @@ Use the argument -h for a list of arguments that can be supplied to the emulator
 
 # Controls
 
-1 - 1   2 - 2   3 - 3   4 - C<br\>
-Q - 4   W - 5   E - 6   R - D<br\>
-A - 7   S - 8   D - 9   F - E<br\>
-Z - A   X - 0   C - B   V - F<br\>
+1 - 1   2 - 2   3 - 3   4 - C<br />
+Q - 4   W - 5   E - 6   R - D<br />
+A - 7   S - 8   D - 9   F - E<br />
+Z - A   X - 0   C - B   V - F<br />
 
 # Libraries
 
